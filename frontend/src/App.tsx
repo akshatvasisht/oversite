@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
 import { useAuth } from './hooks/useAuth';
 import MonacoEditorWrapper from './components/MonacoEditorWrapper';
+import FileExplorer from './components/FileExplorer';
+import { useSession } from './hooks/useSession';
 
 // --- Application Page Components ---
 const LoginPage = () => {
@@ -40,17 +42,52 @@ const AdminDashboard = () => {
 
 const SessionPage = () => {
   const { id } = useParams();
-  const starterCode = `def solve():
-    nums = [1, 2, 3]
-    return sum(nums)
+  const { userId, setSessionId } = useAuth();
+  const {
+    loading,
+    error,
+    sessionId,
+    files,
+    activeFileId,
+    activeFile,
+    activeContent,
+    selectFile,
+    createFile,
+    updateActiveContent,
+  } = useSession({
+    routeSessionId: id ?? 'test',
+    username: userId ?? 'candidate',
+    setSessionIdInContext: setSessionId,
+  });
 
-print(solve())
-`;
+  if (loading) {
+    return <div style={{ padding: '20px' }}>Starting session...</div>;
+  }
 
   return (
     <div style={{ padding: '20px' }}>
       <h1>Session {id}</h1>
-      <MonacoEditorWrapper content={starterCode} />
+      <p style={{ marginTop: 0, color: '#52525b' }}>Active session ID: {sessionId}</p>
+      {error && <p style={{ color: '#9a3412' }}>{error}</p>}
+      <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+        <FileExplorer
+          files={files}
+          activeFileId={activeFileId}
+          onSelectFile={selectFile}
+          onCreateFile={createFile}
+        />
+        <div style={{ flex: 1 }}>
+          <p style={{ marginTop: 0 }}>
+            Editing: <strong>{activeFile?.filename ?? 'No file selected'}</strong>
+          </p>
+          <MonacoEditorWrapper
+            fileId={activeFile?.fileId}
+            content={activeContent}
+            language={activeFile?.language ?? 'python'}
+            onChange={(value) => updateActiveContent(value ?? '')}
+          />
+        </div>
+      </div>
     </div>
   );
 };
