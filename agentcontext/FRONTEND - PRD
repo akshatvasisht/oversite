@@ -1,0 +1,499 @@
+# PRD - FRONTEND
+
+![image.png](attachment:4dc48f24-7c66-4531-9136-133e0fed900d:image.png)
+
+**Product:** AI-Assisted Behavioral Coding Assessment Platform
+
+**Scope:** Candidate session environment + Admin dashboard + Navigation flows
+
+**Audience:** Engineering candidates + Recruiting admins
+
+**Session length target:** ~60 minutes
+
+Some background stuff: https://reactbits.dev/backgrounds/faulty-terminal
+
+---
+
+# 1. Overview
+
+The frontend provides:
+
+1. **Email → Login → Assigned Questions flow (Candidate)**
+2. **Web-based IDE session with AI assistant + prompt display**
+3. **Submission → Return to Question List**
+4. **Admin dashboard → Interviewee list → Score detail view**
+
+This document covers:
+
+- User flows
+- Screen-level specifications
+- Layout structure
+- Component behavior
+- State transitions
+- Edge cases
+- UX constraints
+
+---
+
+# 2. User Roles
+
+| Role | Description |
+| --- | --- |
+| Candidate | Logs in via email link, completes assigned question(s), submits |
+| Admin | Logs in, views interviewees, completion status, scores |
+
+---
+
+# 3. User Flows
+
+## 3.1 Candidate Flow
+
+```
+Email Link
+   ↓
+Login Page
+   ↓
+Assigned Questions Page
+   ↓
+IDE Session
+   ↓
+Submit
+   ↓
+Assigned Questions Page
+   ↓
+Logout
+```
+
+---
+
+## 3.2 Admin Flow
+
+```
+Login Page
+   ↓
+Admin Dashboard (Interviewees)
+   ↓
+Interviewee Detail View (Score + Justification)
+   ↓
+Back to Dashboard
+   ↓
+Logout
+```
+
+---
+
+# 4. Candidate Experience
+
+---
+
+## 4.1 Email Link
+
+**Trigger:** Candidate receives email with unique link.
+
+**Link Behavior:**
+
+- Directs to login page
+- May include token for pre-filling username (optional)
+- Token expires in X hours (backend controlled)
+
+---
+
+## 4.2 Login Page
+
+### Purpose
+
+Authenticate user (predefined accounts like `testuser1`, etc.).
+
+### UI Elements
+
+- Username input
+- Password input
+- Login button
+- Error message area
+- Optional: "Invalid credentials" state
+
+### States
+
+- Loading (spinner)
+- Invalid login
+- Successful login → redirect
+
+---
+
+## 4.3 Assigned Questions Page
+
+### Purpose
+
+Display all questions assigned to candidate.
+
+---
+
+### Layout
+
+**Top Bar**
+
+- Logo (left)
+- Logout button (right)
+
+**Main Body**
+
+- List of assigned questions
+- Status indicator
+- Company name
+- Completion state
+
+---
+
+### Question Card Structure
+
+Each question displays:
+
+- Company name
+- Question title
+- Status:
+    - Not Started
+    - In Progress
+    - Submitted
+- Start/Resume button
+
+---
+
+### Behavior
+
+- Clicking question → IDE session
+- If submitted → button disabled or marked complete
+- No score shown to candidate (MVP)
+
+---
+
+# 5. IDE Session Page
+
+This is the core experience.
+
+---
+
+## 5.1 Overall Layout
+
+```
+--------------------------------------------------------------
+| File Explorer |  Editor                 | AI Agent         |
+|               |                         |                  |
+|               |                         |                  |
+|               |                         |                  |
+|               |                         |                  |
+|               |                         |                  |
+|---------------|                         |                  |
+| Question      |                         |                  |
+| Prompt        |-------------------------|                  |
+|               | Terminal                |                  |
+|               |                         |------------------|
+|               |                         |      Submit      |
+--------------------------------------------------------------
+```
+
+---
+
+## 5.2 Panel Breakdown
+
+### Left Column (Split)
+
+**Upper Left**
+
+- File Explorer
+
+**Lower Left**
+
+- Question Prompt
+
+---
+
+### Center
+
+- Code Editor (Monaco)
+- Tabs for multiple files
+- Syntax highlighting
+- Line numbers
+- Read-only starter files (optional)
+
+---
+
+### Right Panel
+
+- AI Agent Chat
+- Prompt input box
+- Chat history
+- Timestamped messages
+
+---
+
+### Bottom Panel
+
+- Terminal
+- Run tests
+- Output log
+- Clear button
+
+---
+
+### Bottom Right
+
+- Submit Button
+- Confirmation modal on click
+
+---
+
+## 5.3 Session Phases UI (Optional MVP+)
+
+Top progress indicator:
+
+- Orientation
+- Implementation
+- Verification
+
+Timer displayed in top right.
+
+---
+
+## 5.4 Submit Flow
+
+Click **Submit** →
+
+- Confirmation modal:
+    - “Are you sure?”
+    - Warning that submission is final
+- Confirm → Save session → Run final tests → Redirect to Assigned Questions page
+
+---
+
+## 5.5 Autosave
+
+- Debounced save every 5 seconds
+- Save on file switch
+- Save on terminal run
+- Save on prompt send
+
+---
+
+## 5.6 Error Handling
+
+| Scenario | Behavior |
+| --- | --- |
+| AI API failure | Show retry button |
+| Docker/test failure | Show test error |
+| Network drop | Show reconnect modal |
+| Session timeout | Lock editor + show expired message |
+
+---
+
+# 6. Admin Experience
+
+---
+
+## 6.1 Admin Login
+
+Same login page.
+
+Backend determines role and routes accordingly.
+
+---
+
+## 6.2 Admin Dashboard
+
+### Layout
+
+**Top Bar**
+
+- Logo
+- Logout button
+
+**Main Content**
+
+- Table of interviewees
+
+---
+
+### Interviewee Table Columns
+
+| Column | Description |
+| --- | --- |
+| Name | Username |
+| Company | Question source |
+| Status | Not Started / In Progress / Completed |
+| Score | If completed |
+| Date Submitted | Timestamp |
+
+---
+
+### Behavior
+
+- Clicking row (if Completed) → Score Detail View
+- If not completed → disabled or shows “Not Submitted”
+
+---
+
+## 6.3 Interviewee Detail View
+
+### Layout
+
+**Top**
+
+- Back Button
+- Candidate name
+- Question title
+
+**Main Content**
+
+**Score Summary**
+
+- Overall Behavioral Label
+- Overall Score
+- Functional Score
+
+**Rubric Breakdown**
+
+- Table of dimension scores (1–5)
+
+**Justification**
+
+- LLM narrative explanation
+- Highlighted excerpts
+- Improvement suggestions
+
+---
+
+## 6.4 Back Navigation
+
+Back button → Admin Dashboard
+
+---
+
+# 7. Navigation & Routing
+
+| Route | Description |
+| --- | --- |
+| `/login` | Login page |
+| `/questions` | Candidate assigned questions |
+| `/session/:id` | IDE session |
+| `/admin` | Admin dashboard |
+| `/admin/:candidateId` | Candidate detail view |
+
+---
+
+# 8. State Management
+
+Global State Includes:
+
+- Auth user
+- Role (candidate/admin)
+- Active session
+- Timer
+- Unsaved changes flag
+- AI request loading state
+
+---
+
+# 9. Component Inventory
+
+### Shared Components
+
+- `TopNavBar`
+- `LogoutButton`
+- `Modal`
+- `Spinner`
+- `ToastNotification`
+
+### Candidate Components
+
+- `QuestionCard`
+- `MonacoEditorWrapper`
+- `FileExplorer`
+- `TerminalPanel`
+- `AIChatPanel`
+- `SubmitModal`
+
+### Admin Components
+
+- `IntervieweeTable`
+- `ScoreSummary`
+- `RubricBreakdown`
+- `NarrativeReport`
+
+---
+
+# 10. UX Principles
+
+- Clean, neutral design (not flashy)
+- Familiar IDE mental model
+- Minimal friction
+- Clear session finality on submission
+- Admin view optimized for scanning many candidates
+
+---
+
+# 11. Security & Permissions
+
+- Role-based routing guard
+- Candidates cannot access admin routes
+- Admin cannot enter active session
+- Token-based authentication
+- Session ID validation
+
+---
+
+# 12. MVP vs Post-MVP
+
+## MVP
+
+- Login
+- Assigned questions page
+- IDE layout
+- AI assistant panel
+- Submit flow
+- Admin dashboard
+- Score view
+
+---
+
+## Post-MVP
+
+- Phase progress UI
+- Real-time autosave indicator
+- Session playback for admins
+- Highlighting behavioral moments
+- Dark mode
+- Keyboard shortcuts
+
+---
+
+# 13. Edge Cases
+
+| Case | Expected Behavior |
+| --- | --- |
+| Candidate refreshes during session | Restore state |
+| Multiple tabs open | Lock second session |
+| Submit with failing tests | Allow submit (behavioral eval independent) |
+| Admin views incomplete candidate | Show status only |
+
+---
+
+# 14. Success Metrics (Frontend)
+
+| Metric | Target |
+| --- | --- |
+| Session completion rate | >70% |
+| Average time in IDE | ~60 min |
+| AI panel usage rate | >80% sessions |
+| Submit without crash | 99% success |
+
+---
+
+# Summary
+
+Frontend responsibilities:
+
+- Deliver a realistic AI-assisted coding environment
+- Capture all user actions
+- Guide user through clear session lifecycle
+- Provide recruiter-facing transparency into scoring
+
+The frontend must feel like a real interview IDE — not a demo — while remaining simple enough to ship within hackathon constraints.
