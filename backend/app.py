@@ -5,6 +5,7 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from db import init_db
 from routes.session import session_bp
+from routes.files import files_bp
 
 import logging
 
@@ -19,6 +20,7 @@ app = Flask(__name__)
 CORS(app)
 
 app.register_blueprint(session_bp, url_prefix="/api/v1")
+app.register_blueprint(files_bp, url_prefix="/api/v1")
 
 @app.route("/api/v1/health")
 def health() -> Any:

@@ -85,8 +85,6 @@ class EditorEvent(Base):
     content = Column(Text, nullable=False)
     edit_delta = Column(Text)
     suggestion_id = Column(String, ForeignKey('ai_suggestions.suggestion_id'))
-    cursor_line = Column(Integer)
-    cursor_col = Column(Integer)
     timestamp = Column(DateTime)
     char_count = Column(Integer)
 
