@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
 import MonacoEditorWrapper from './components/MonacoEditorWrapper';
 
@@ -37,12 +38,18 @@ const AdminDashboard = () => {
 };
 
 const SessionPage = () => {
-  const { role } = useAuth();
-  if (role !== 'candidate') return <Navigate to="/login" replace />;
+  const { id } = useParams();
+  const starterCode = `def solve():
+    nums = [1, 2, 3]
+    return sum(nums)
+
+print(solve())
+`;
+
   return (
     <div style={{ padding: '20px' }}>
-      <h1>Session</h1>
-      <MonacoEditorWrapper content="# Welcome to MadData" />
+      <h1>Session {id}</h1>
+      <MonacoEditorWrapper content={starterCode} />
     </div>
   );
 };
@@ -65,9 +72,8 @@ const AppRoutes = () => {
       <Route path="/admin" element={<ProtectedRoute allowedRole="admin"><AdminDashboard /></ProtectedRoute>} />
       <Route path="/admin/:candidateId" element={<ProtectedRoute allowedRole="admin"><div>Candidate Evaluation Detail</div></ProtectedRoute>} />
       <Route path="/session/:id" element={<ProtectedRoute allowedRole="candidate"><SessionPage /></ProtectedRoute>} />
-
       {/* Default fallback */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<Navigate to="/session/test" replace />} />
     </Routes>
   );
 };
