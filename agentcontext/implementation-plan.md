@@ -54,11 +54,11 @@ Hour  │ MODEL (M)           │ BACKEND (B)          │ FRONTEND-A (FA)      
 ### BACKEND — Schema + DB Init
 **Goal:** All 8 tables created, `db.py init` works, app boots.
 
-- [ ] Write `models.py` — all 8 SQLAlchemy models: `sessions`, `files`, `events`, `ai_interactions`, `ai_suggestions`, `chunk_decisions`, `editor_events`, `session_scores`
-- [ ] Write `db.py` — `init_db()`, `get_db()` session factory
-- [ ] Write `app.py` skeleton — Flask factory, blueprint stubs, CORS, env loading
-- [ ] Write `requirements.txt` — flask, flask-cors, sqlalchemy, google-generativeai, python-dotenv, xgboost, lightgbm, joblib, scikit-learn
-- [ ] Run `python db.py init` — verify all tables present via sqlite3
+- [x] Write `models.py` — all 8 SQLAlchemy models: `sessions`, `files`, `events`, `ai_interactions`, `ai_suggestions`, `chunk_decisions`, `editor_events`, `session_scores`
+- [x] Write `db.py` — `init_db()`, `get_db()` session factory
+- [x] Write `app.py` skeleton — Flask factory, blueprint stubs, CORS, env loading
+- [x] Write `requirements.txt` — flask, flask-cors, sqlalchemy, google-generativeai, python-dotenv, xgboost, lightgbm, joblib, scikit-learn
+- [x] Run `python db.py init` — verify all tables present via sqlite3
 
 **Test gate — `test_schema.py`:**
 ```python
@@ -77,11 +77,11 @@ def test_all_tables_exist():
 ### FRONTEND-A — Project Scaffold
 **Goal:** React app boots, Monaco renders, routing exists.
 
-- [ ] `npx create-react-app maddata --template typescript` (or Vite)
-- [ ] Install: `@monaco-editor/react`, `axios`, `react-router-dom`
-- [ ] Route skeleton: `/session/:id` → `SessionPage` placeholder
-- [ ] Verify Monaco renders with a hardcoded Python string
-- [ ] Create `api.ts` — axios instance pointing at `localhost:8000/api/v1`, `X-Session-ID` header interceptor
+- [x] `npx create-react-app maddata --template typescript` (or Vite)
+- [x] Install: `@monaco-editor/react`, `axios`, `react-router-dom`
+- [x] Route skeleton: `/session/:id` → `SessionPage` placeholder
+- [x] Verify Monaco renders with a hardcoded Python string
+- [x] Create `api.ts` — axios instance pointing at `localhost:8000/api/v1`, `X-Session-ID` header interceptor
 
 **Test gate:** App loads at `localhost:3000`, Monaco editor visible at `/session/test`. ✅
 
@@ -90,11 +90,11 @@ def test_all_tables_exist():
 ### FRONTEND-B — Project Scaffold
 **Goal:** Same app, auth routing works.
 
-- [ ] Same scaffold as FA (shared repo, same app)
-- [ ] Install: same deps + `react-hook-form`
-- [ ] Routes: `/login`, `/questions`, `/admin`, `/admin/:candidateId`
-- [ ] Write `AuthContext` — stores `{ userId, role, sessionId }`, `isAuthenticated`
-- [ ] Route guards: unauthenticated → `/login`; candidate hitting `/admin` → `/questions`
+- [x] Same scaffold as FA (shared repo, same app)
+- [x] Install: same deps + `react-hook-form`
+- [x] Routes: `/login`, `/questions`, `/admin`, `/admin/:candidateId`
+- [x] Write `AuthContext` — stores `{ userId, role, sessionId }`, `isAuthenticated`
+- [x] Route guards: unauthenticated → `/login`; candidate hitting `/admin` → `/questions`
 
 **Test gate:** Navigate to `/admin` unauthenticated → redirects to `/login`. Mock login → `/admin` placeholder renders. ✅
 
@@ -190,10 +190,10 @@ def test_file_creation_dual_writes():
 ### MODEL — WildChat Filtering + Component 2 Feature Design
 **Goal:** WildChat coding subset ready, per-prompt features extractable.
 
-- [ ] Filter WildChat: multi-turn coding conversations with ≥1 code block + ≥3 turns
-- [ ] Compute per-prompt weak supervision labels: `re_prompt_rate` (next turn corrects/redirects), `turns_to_resolution`
-- [ ] Write `prompt_features.py` — `extract_c2_features(prompt_text, next_turn_text) -> dict` covering: length, code block presence, function name references, specificity signals (constraint language, scoped verbs, named identifiers), re-prompt indicator
-- [ ] Spot-check 20 samples manually — do high-quality prompts score higher on your features?
+- [x] Filter WildChat: multi-turn coding conversations with ≥1 code block + ≥3 turns
+- [x] Compute per-prompt weak supervision labels: `re_prompt_rate` (next turn corrects/redirects), `turns_to_resolution`
+- [x] Write `prompt_features.py` — `extract_c2_features(prompt_text, next_turn_text) -> dict` covering: length, code block presence, function name references, specificity signals (constraint language, scoped verbs, named identifiers), re-prompt indicator
+- [x] Spot-check 20 samples manually — do high-quality prompts score higher on your features?
 
 **Test gate — `test_prompt_features.py`:**
 ```python
@@ -206,6 +206,7 @@ def test_specific_prompt_scores_higher():
     assert s['prompt_length'] > v['prompt_length']
     assert s['has_code_context'] >= v['has_code_context']
 ```
+✅
 ✅
 
 ---
