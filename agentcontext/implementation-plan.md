@@ -27,12 +27,12 @@ Hour  │ MODEL (M)           │ BACKEND (B)          │ FRONTEND-A (FA)      
 
 ## Pre-Start Checklist (T−30 min, everyone)
 
-- [ ] Agree: Gemini throughout — **no Claude/Anthropic references anywhere in code or config**. Judge = Gemini with a rubric system prompt.
-- [ ] Confirm env vars: `GEMINI_API_KEY`, `FLASK_SECRET_KEY`, `DATABASE_URL`
-- [ ] Create shared `.env.example` and commit before splitting off
-- [ ] Stand up shared Git repo; agree on branch strategy (feature branches, merge to `main` only when tests pass)
-- [ ] Backend on `localhost:8000`, Frontend on `localhost:3000` — locked, no deviations
-- [ ] Share a Postman/Bruno collection or agree on a curl-based test tool
+- [x] Agree: Gemini throughout — **no Claude/Anthropic references anywhere in code or config**. Judge = Gemini with a rubric system prompt.
+- [x] Confirm env vars: `GEMINI_API_KEY`, `FLASK_SECRET_KEY`, `DATABASE_URL`
+- [x] Create shared `.env.example` and commit before splitting off
+- [x] Stand up shared Git repo; agree on branch strategy (feature branches, merge to `main` only when tests pass)
+- [x] Backend on `localhost:8000`, Frontend on `localhost:3000` — locked, no deviations
+- [x] Share a Postman/Bruno collection or agree on a curl-based test tool
 
 ---
 
@@ -41,11 +41,11 @@ Hour  │ MODEL (M)           │ BACKEND (B)          │ FRONTEND-A (FA)      
 ### MODEL — Data Prep & EDA
 **Goal:** Datasets loaded, proxy label logic understood, training skeleton exists.
 
-- [ ] Load CUPS dataset (`microsoft/coderec_programming_states`) via HuggingFace
-- [ ] EDA: plot distributions of `acceptance_rate`, `deliberation_time`, `post_acceptance_edit_rate`
-- [ ] Define proxy label thresholds: `strategic` = low blind acceptance + high pause + post-edit modification; `over_reliant` = inverse; `balanced` = middle
-- [ ] Load WildChat, filter to multi-turn coding sessions (code block presence + ≥3 turns)
-- [ ] Check class balance — if >4:1 ratio on CUPS labels, note for class weighting in XGBoost
+- [x] Load CUPS dataset (`microsoft/coderec_programming_states`) via HuggingFace
+- [x] EDA: plot distributions of `acceptance_rate`, `deliberation_time`, `post_acceptance_edit_rate`
+- [x] Define proxy label thresholds: `strategic` = low blind acceptance + high pause + post-edit modification; `over_reliant` = inverse; `balanced` = middle
+- [x] Load WildChat, filter to multi-turn coding sessions (code block presence + ≥3 turns)
+- [x] Check class balance — if >4:1 ratio on CUPS labels, note for class weighting in XGBoost
 
 **Test gate:** Print class distribution for both datasets. Labels exist, no NaNs, distribution is not degenerate. ✅
 
@@ -105,11 +105,11 @@ def test_all_tables_exist():
 ### MODEL — CUPS Preprocessing
 **Goal:** Feature vector extractable from CUPS, train/val split ready.
 
-- [ ] Extract all 15 Component 1 features from CUPS telemetry into a flat DataFrame
-- [ ] Apply proxy label logic — verify rough thirds across 3 classes
-- [ ] 80/20 train/val split, stratified by label
-- [ ] Write `features.py` — `extract_c1_features(session_events_df) -> np.array`. **This function signature is the contract with backend.**
-- [ ] Unit test on a synthetic 10-event session
+- [x] Extract all 15 Component 1 features from CUPS telemetry into a flat DataFrame
+- [x] Apply proxy label logic — verify rough thirds across 3 classes
+- [x] 80/20 train/val split, stratified by label
+- [x] Write `features.py` — `extract_c1_features(session_events_df) -> np.array`. **This function signature is the contract with backend.**
+- [x] Unit test on a synthetic 10-event session
 
 **Test gate — `test_features.py`:**
 ```python
