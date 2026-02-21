@@ -11,16 +11,16 @@
 ```
 Hour  │ MODEL (M)           │ BACKEND (B)          │ FRONTEND-A (FA)       │ FRONTEND-B (FB)
 ──────┼─────────────────────┼──────────────────────┼───────────────────────┼───────────────────────
- 0–1  │ Data prep + EDA     │ Schema + db init      │ Project scaffold      │ Project scaffold
- 1–2  │ CUPS preprocessing  │ Core endpoints I      │ Monaco editor shell   │ Login + auth flow
- 2–3  │ WildChat filtering  │ Core endpoints II     │ File explorer         │ Questions list page
- 3–4  │ Component 1 train   │ AI proxy + suggest.   │ AI chat panel         │ Admin dashboard
- 4–5  │ Component 2 train   │ Scoring engine I      │ Diff overlay UI       │ Score detail view
- 5–6  │ Component 3 calib.  │ Scoring engine II     │ Terminal panel        │ Integration + wiring
- 6–7  │ Aggregation layer   │ Analytics endpoints   │ Submit flow           │ Polish + edge cases
- 7–8  │ Integration + eval  │ seed.py + E2E tests   │ Event instrumentation │ Cross-role testing
- 8–9  │ LLM judge prompt    │ Bug fixes + hardening │ Phase UI + polish     │ Bug fixes
- 9–10 │ Final validation    │ Demo prep             │ Demo prep             │ Demo prep
+ 0–1  │ Data prep + EDA     │ Schema + db init     │ Project scaffold      │ Project scaffold
+ 1–2  │ CUPS preprocessing  │ Core endpoints I     │ Monaco editor shell   │ Login + auth flow
+ 2–3  │ WildChat filtering  │ Core endpoints II    │ File explorer         │ Questions list page
+ 3–4  │ Component 1 train   │ AI proxy + suggest.  │ AI chat panel         │ Admin dashboard
+ 4–5  │ Component 2 train   │ Scoring engine I     │ Diff overlay UI       │ Score detail view
+ 5–6  │ Component 3 calib.  │ Scoring engine II    │ Terminal panel        │ Integration + wiring
+ 6–7  │ Aggregation layer   │ Analytics endpoints  │ Submit flow           │ Polish + edge cases
+ 7–8  │ Integration + eval  │ seed.py + E2E tests  │ Event instrumentation │ Cross-role testing
+ 8–9  │ LLM judge prompt    │ Bug fixes + hardening│ Phase UI + polish     │ Bug fixes
+ 9–10 │ Final validation    │ Demo prep            │ Demo prep             │ Demo prep
 ```
 
 ---
