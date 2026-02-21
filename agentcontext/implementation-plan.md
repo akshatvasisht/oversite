@@ -1,6 +1,6 @@
 # MadData — 10-Hour Implementation Plan
 
-> **Stack:** Python/Flask/SQLite (Backend) · React/Monaco (Frontend) · XGBoost + LightGBM (Model) · Gemini Flash (LLM)
+> **Stack:** Python/Flask/SQLite (Backend) · React/Monaco (Frontend) · XGBoost (Model) · Gemini Flash (LLM)
 > **Team:** 1× Model · 1× Backend · 1× Frontend-A (IDE/session) · 1× Frontend-B (Admin/auth)
 > **Test discipline:** No phase advances until its test suite passes. Blocking dependencies are explicit.
 
@@ -57,7 +57,7 @@ Hour  │ MODEL (M)           │ BACKEND (B)          │ FRONTEND-A (FA)      
 - [x] Write `models.py` — all 8 SQLAlchemy models: `sessions`, `files`, `events`, `ai_interactions`, `ai_suggestions`, `chunk_decisions`, `editor_events`, `session_scores`
 - [x] Write `db.py` — `init_db()`, `get_db()` session factory
 - [x] Write `app.py` skeleton — Flask factory, blueprint stubs, CORS, env loading
-- [x] Write `requirements.txt` — flask, flask-cors, sqlalchemy, google-generativeai, python-dotenv, xgboost, lightgbm, joblib, scikit-learn
+- [x] Write `requirements.txt` — flask, flask-cors, sqlalchemy, google-generativeai, python-dotenv, xgboost, joblib, scikit-learn
 - [x] Run `python db.py init` — verify all tables present via sqlite3
 
 **Test gate — `test_schema.py`:**
@@ -280,11 +280,11 @@ def test_identical_content_produces_no_hunks():
 ### MODEL — Component 1 Training
 **Goal:** XGBoost trained, feature importances extracted, artifact saved.
 
-- [ ] Train XGBoost on CUPS feature vectors + proxy labels (reasonable defaults: `n_estimators=200`, `max_depth=5`)
-- [ ] Extract `.feature_importances_` — normalize to sum to 1
-- [ ] `joblib.dump(model, 'models/component1_xgboost.joblib')`
-- [ ] `json.dump(importances, open('models/c1_importances.json','w'))`
-- [ ] Evaluate on val set — target accuracy ≥0.65 (acceptable given proxy labels)
+- [x] Train XGBoost on CUPS feature vectors + proxy labels (reasonable defaults: `n_estimators=200`, `max_depth=5`)
+- [x] Extract `.feature_importances_` — normalize to sum to 1
+- [x] `joblib.dump(model, 'models/component1_xgboost.joblib')`
+- [x] `json.dump(importances, open('models/c1_importances.json','w'))`
+- [x] Evaluate on val set — target accuracy ≥0.65 (acceptable given proxy labels)
 
 **Test gate — `test_component1.py`:**
 ```python
@@ -384,18 +384,18 @@ def test_modified_decision_stores_edited_code():
 ## Hour 4–5 | Component 2 Training + Scoring Engine I
 
 ### MODEL — Component 2 Training
-**Goal:** LightGBM prompt quality scorer trained, per-prompt scores computable.
+**Goal:** Xgboost prompt quality scorer trained, per-prompt scores computable.
 
 - [ ] Build feature matrix from WildChat filtered subset
-- [ ] Train LightGBM; evaluate on held-out WildChat conversations
-- [ ] `joblib.dump(model, 'models/component2_lgbm.joblib')`
+- [ ] Train Xgboost; evaluate on held-out WildChat conversations
+- [ ] `joblib.dump(model, 'models/component2_xgboost.joblib')`
 - [ ] Write `score_prompts(prompt_list) -> list[float]` — callable by backend scoring pipeline
 - [ ] **Optional:** load CodeBERT embeddings and concatenate — skip if >30min
 
 **Test gate — `test_component2.py`:**
 ```python
 def test_c2_model_loads():
-    model = joblib.load('models/component2_lgbm.joblib')
+    model = joblib.load('models/component2_xgboost.joblib')
     feats = extract_c2_features("fix this", "")
     score = model.predict([list(feats.values())])
     assert 1.0 <= float(score) <= 5.0
@@ -568,7 +568,7 @@ def test_full_pipeline_on_seeded_session():
 ### MODEL — Integration Testing with Backend
 **Goal:** Artifacts load correctly in backend; feature extraction matches training.
 
-- [ ] Copy `models/component1_xgboost.joblib`, `models/component2_lgbm.joblib`, `models/c1_importances.json` to `backend/models/`
+- [ ] Copy `models/component1_xgboost.joblib`, `models/component2_xgboost.joblib`, `models/c1_importances.json` to `backend/models/`
 - [ ] Run `test_scoring_components.py` with `SCORING_FALLBACK_MODE=false` — must use real artifacts
 - [ ] Verify `feature_importances` in `session_scores` is populated and sums to ~1.0
 - [ ] Run aggregation on 5 synthetic sessions — verify labels are sensible
@@ -834,7 +834,7 @@ FRONTEND-A: chunk decide  ──────────────────
                                                           ▼
 MODEL: features.py contract  ──────────────────► BACKEND: extract_c1_features() in scoring.py
 MODEL: component1_xgboost.joblib  ─────────────► BACKEND: run_component1()
-MODEL: component2_lgbm.joblib  ─────────────────► BACKEND: run_component2()
+MODEL: component2_xgboost.joblib  ─────────────► BACKEND: run_component2()
                                                           │
                                                           ▼
 BACKEND: POST /session/end  ────────────────────► session_scores written

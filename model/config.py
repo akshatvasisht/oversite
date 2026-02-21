@@ -17,6 +17,9 @@ class ModelConfig:
     
     # ML Hyperparameters
     RANDOM_SEED: int = 42
+    C1_N_ESTIMATORS: int = 200
+    C1_MAX_DEPTH: int = 5
+    C1_LEARNING_RATE: float = 0.1
     
     # Data Loading
     WILDCHAT_MAX_RECORDS: int = 500
@@ -26,3 +29,4 @@ config = ModelConfig()
 
 # Ensure directories exist
 os.makedirs(config.EDA_DIR, exist_ok=True)
+os.makedirs(os.path.join(os.path.dirname(config.EDA_DIR), "..", "models"), exist_ok=True)

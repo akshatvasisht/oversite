@@ -1,4 +1,6 @@
 import logging
+import os
+import urllib.request
 from typing import List, Dict, Any, Optional
 import pandas as pd
 import numpy as np
@@ -9,34 +11,92 @@ from config import config
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-def load_cups() -> pd.DataFrame:
+def load_cups(force_download: bool = False) -> pd.DataFrame:
     """
-    Loads the CUPS dataset from HuggingFace.
-    
-    If the dataset is unavailable, generates a synthetic dataset to ensure 
-    downstream EDA components remain functional.
+    Loads the real CUPS dataset from Microsoft's GitHub repository.
     
     Returns:
-        pd.DataFrame: A DataFrame containing programming session telemetry.
+        pd.DataFrame: A DataFrame containing aggregated programming session telemetry 
+                      per user to match the (15,) feature contract.
     """
-    logger.info(f"Attempting to load CUPS dataset: {config.CUPS_DATASET}")
+    data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+    os.makedirs(data_dir, exist_ok=True)
+    
+    pkl_path = os.path.join(data_dir, 'data_labeled_study.pkl')
+    
+    if force_download or not os.path.exists(pkl_path):
+        url = "https://raw.githubusercontent.com/microsoft/coderec_programming_states/main/data/data_labeled_study.pkl"
+        logger.info(f"Downloading real CUPS dataset from {url}...")
+        try:
+            import urllib.request
+            urllib.request.urlretrieve(url, pkl_path)
+            logger.info("Download complete.")
+        except Exception as e:
+            logger.error(f"Failed to download CUPS dataset: {e}")
+            raise RuntimeError("Cannot proceed without the real CUPS dataset as requested.")
+    else:
+        logger.info(f"Using cached CUPS dataset at {pkl_path}")
+        
     try:
-        ds = load_dataset(config.CUPS_DATASET, split='train')
-        df = ds.to_pandas()
-        logger.info("Successfully loaded CUPS dataset.")
-        return df
+        # The pickle file contains a list of 21 DataFrames (one per user)
+        user_dfs = pd.read_pickle(pkl_path)
+        logger.info(f"Loaded records for {len(user_dfs)} users.")
+        
+        aggregated_rows = []
+        for df in user_dfs:
+            if df.empty:
+                continue
+                
+            user_id = df['UserId'].iloc[0]
+            
+            # 1. Acceptance Rate: 'Accepted' vs 'Shown'
+            shown_count = (df['StateName'] == 'Shown').sum()
+            accepted_count = (df['StateName'] == 'Accepted').sum()
+            acc_rate = accepted_count / shown_count if shown_count > 0 else 0.0
+            
+            # 2. Deliberation Time: Time spent in 'Shown' state before 'Accepted' or 'Rejected'
+            # We approximate this by looking at TimeSpentInState where StateName == 'Shown'
+            delib_time = df[df['StateName'] == 'Shown']['TimeSpentInState'].mean()
+            if pd.isna(delib_time):
+                delib_time = 0.0
+                
+            # 3. Verification Frequency: How often they enter 'Thinking/Verifying Suggestion (A)'
+            verif_freq = (df['LabeledState'] == 'Thinking/Verifying Suggestion (A)').sum()
+            
+            # 4. Post-Acceptance Edit Rate:
+            # We use 'Editing Last Suggestion (X)' state prevalence
+            edit_sugg_count = (df['LabeledState'] == 'Editing Last Suggestion (X)').sum()
+            edit_rate = edit_sugg_count / accepted_count if accepted_count > 0 else 0.0
+            
+            # 5. Reprompt Ratio:
+            # We use 'Prompt Crafting (V)' frequency relative to total actions
+            prompt_count = (df['LabeledState'] == 'Prompt Crafting (V)').sum()
+            reprompt_ratio = prompt_count / len(df) if len(df) > 0 else 0.0
+            
+            # 6. Orientation Phase Prompt Count
+            orient_count = (df['LabeledState'] == 'Looking up Documentation (N)').sum()
+
+            row = {
+                'session_id': str(user_id),
+                'acceptance_rate': acc_rate,
+                'deliberation_time': delib_time,
+                'post_acceptance_edit_rate': edit_rate,
+                'verification_frequency': verif_freq,
+                'reprompt_ratio': reprompt_ratio,
+                'prompt_count_verification_phase': verif_freq * 0.5, # Approximation
+                'prompt_count_orientation_phase': orient_count,
+                 # We don't have exact 'editor pct' in this dataset, so default to 0.5
+                'time_by_panel_editor_pct': 0.5
+            }
+            aggregated_rows.append(row)
+            
+        final_df = pd.DataFrame(aggregated_rows)
+        logger.info(f"Aggregated into {len(final_df)} session records.")
+        return final_df
+        
     except Exception as e:
-        logger.warning(f"Failed to load CUPS dataset: {e}. Generating localized mock data to maintain development flow.")
-        np.random.seed(config.RANDOM_SEED)
-        n = 1000
-        return pd.DataFrame({
-            'session_id': [f's_{i}' for i in range(n)],
-            'acceptance_rate': np.random.beta(2, 5, n),
-            'deliberation_time': np.random.exponential(15, n),
-            'post_acceptance_edit_rate': np.random.beta(1, 4, n),
-            'verification_frequency': np.random.poisson(2, n),
-            'reprompt_ratio': np.random.uniform(0, 0.5, n),
-        })
+        logger.error(f"Error parsing CUPS data: {e}")
+        raise
 
 def passes_wildchat_filters(conversation: List[Dict[str, Any]]) -> bool:
     """
