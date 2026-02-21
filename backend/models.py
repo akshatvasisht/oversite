@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, Text, ForeignKey, DateTime
-from db import Base
+from base import Base
 
 class Session(Base):
     __tablename__ = 'sessions'
