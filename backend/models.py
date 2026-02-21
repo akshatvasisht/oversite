@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, Text, ForeignKey, JSON
-from db import Base
+from base import Base
 
 class Session(Base):
     __tablename__ = 'sessions'
@@ -7,8 +7,8 @@ class Session(Base):
     username = Column(String, nullable=False)
     project_name = Column(String, nullable=False)
     final_phase = Column(String)
-    started_at = Column(Integer) # or DateTime
-    ended_at = Column(Integer) # or DateTime
+    started_at = Column(Integer)
+    ended_at = Column(Integer)
 
 class File(Base):
     __tablename__ = 'files'
@@ -21,7 +21,7 @@ class Event(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     session_id = Column(String, ForeignKey('sessions.id'), nullable=False)
     event_type = Column(String, nullable=False)
-    timestamp = Column(Integer) # or DateTime
+    timestamp = Column(Integer)
 
 class AIInteraction(Base):
     __tablename__ = 'ai_interactions'

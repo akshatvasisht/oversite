@@ -1,20 +1,24 @@
 import os
-import sqlite3
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import sessionmaker
+import logging
+from base import Base
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 # Load DATABASE_URL from environment or use default
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///maddata.db")
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
 
-def init_db():
-    # Import Base and models only here or implicitly via imported models
-    from models import Base
+def init_db() -> None:
+    """Initializes the database schema."""
+    import models
     Base.metadata.create_all(bind=engine)
-    print("Database tables initialized successfully.")
+    logger.info("Database initialized successfully.")
 
 def get_db():
     db = SessionLocal()
