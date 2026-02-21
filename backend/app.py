@@ -4,6 +4,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 from db import init_db
+from routes.session import session_bp
 
 import logging
 
@@ -16,6 +17,8 @@ load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env.examp
 
 app = Flask(__name__)
 CORS(app)
+
+app.register_blueprint(session_bp, url_prefix="/api/v1")
 
 @app.route("/api/v1/health")
 def health() -> Any:
