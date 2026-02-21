@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
-import { AuthProvider, useAuth } from './AuthContext';
+import { AuthProvider } from './AuthContext';
+import { useAuth } from './hooks/useAuth';
 import MonacoEditorWrapper from './components/MonacoEditorWrapper';
 
 // --- Application Page Components ---
@@ -73,7 +74,7 @@ const AppRoutes = () => {
       <Route path="/admin/:candidateId" element={<ProtectedRoute allowedRole="admin"><div>Candidate Evaluation Detail</div></ProtectedRoute>} />
       <Route path="/session/:id" element={<ProtectedRoute allowedRole="candidate"><SessionPage /></ProtectedRoute>} />
       {/* Default fallback */}
-      <Route path="/" element={<Navigate to="/session/test" replace />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 };
