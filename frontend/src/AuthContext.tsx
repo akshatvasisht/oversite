@@ -1,19 +1,7 @@
-import { createContext, useContext, useState } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
-
-type Role = 'admin' | 'candidate' | null;
-
-interface AuthContextType {
-    userId: string | null;
-    role: Role;
-    sessionId: string | null;
-    isAuthenticated: boolean;
-    login: (user: string, r: Role) => void;
-    logout: () => void;
-    setSessionId: (id: string | null) => void;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { AuthContext } from './context/auth';
+import type { Role } from './context/auth';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [userId, setUserId] = useState<string | null>(null);
@@ -39,7 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
             localStorage.removeItem('sessionId');
         }
-    }
+    };
 
     const value = {
         userId,
@@ -52,12 +40,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
 };
