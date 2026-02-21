@@ -8,7 +8,6 @@ class Session(Base):
     project_name = Column(String)
     started_at = Column(DateTime)
     ended_at = Column(DateTime)
-    phase = Column(String)
 
 
 class File(Base):
