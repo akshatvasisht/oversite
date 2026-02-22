@@ -25,11 +25,21 @@ const LoginPage = () => {
     return <Navigate to={role === 'admin' ? '/admin' : '/questions'} replace />;
   }
 
-  const signInAs = (user: string): void => {
+  const signInAs = async (user: string): Promise<void> => {
     const normalized = user.trim().toLowerCase();
-    const loginRole = normalized === 'admin' ? 'admin' : 'candidate';
-    login(normalized, loginRole);
-    navigate(loginRole === 'admin' ? '/admin' : '/questions', { replace: true });
+    const isDemouser = normalized === 'testuser1' || normalized === 'candidate1';
+    const pwd = normalized === 'admin1' || normalized === 'admin' ? 'admin123' : (isDemouser ? 'password123' : 'password123');
+    const uName = normalized === 'admin' ? 'admin1' : (normalized === 'testuser1' ? 'candidate1' : normalized);
+
+    try {
+      const resp = await api.post('/auth/login', { username: uName, password: pwd });
+      const { userId: loginUserId, role: loginRole, token } = resp.data;
+      login(loginUserId, loginRole, token);
+      navigate(loginRole === 'admin' ? '/admin' : '/questions', { replace: true });
+    } catch (err) {
+      console.error('Login failed', err);
+      alert('Login failed. Please check your credentials.');
+    }
   };
 
   return (
@@ -198,8 +208,8 @@ const SessionPage = () => {
 
   const autosaveLabel =
     autosaveStatus === 'saving' ? 'Saving...' :
-    autosaveStatus === 'saved'  ? 'Saved ✓' :
-    autosaveStatus === 'error'  ? 'Save failed' : 'Idle';
+      autosaveStatus === 'saved' ? 'Saved ✓' :
+        autosaveStatus === 'error' ? 'Save failed' : 'Idle';
 
   return (
     <>
