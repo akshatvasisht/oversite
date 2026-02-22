@@ -156,3 +156,83 @@ def get_suggestion(session, db, suggestion_id):
         "all_accepted": suggestion.all_accepted,
         "any_modified": suggestion.any_modified,
     }), 200
+
+
+@suggestions_bp.route("/suggestions/<suggestion_id>/chunks/<int:chunk_index>/decide", methods=["POST"])
+@require_session
+def decide_chunk(session, db, suggestion_id, chunk_index):
+    from models import ChunkDecision
+    
+    suggestion = db.query(AISuggestion).filter_by(suggestion_id=suggestion_id).first()
+    if not suggestion or suggestion.session_id != session.session_id:
+        return jsonify({"error": "Suggestion not found"}), 404
+
+    # Validate chunk_index (assuming 0-indexed up to hunks_count - 1)
+    if suggestion.hunks_count is not None and (chunk_index < 0 or chunk_index >= suggestion.hunks_count):
+        return jsonify({"error": "Invalid chunk_index for this suggestion"}), 400
+
+    # Check if already decided
+    existing = db.query(ChunkDecision).filter_by(suggestion_id=suggestion_id, chunk_index=chunk_index).first()
+    if existing:
+        return jsonify({"error": "Chunk already decided"}), 409
+
+    data = request.get_json()
+    decision = data.get("decision")
+    final_code = data.get("final_code")
+    time_ms = data.get("time_on_chunk_ms")
+
+    if decision not in ["accepted", "rejected", "modified"]:
+        return jsonify({"error": "Invalid decision"}), 400
+    if final_code is None:
+        return jsonify({"error": "final_code is required"}), 400
+    if time_ms is None or not isinstance(time_ms, int):
+        return jsonify({"error": "time_on_chunk_ms must be an integer"}), 400
+
+    time_on_chunk_ms = max(100, min(300000, time_ms))
+    decision_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+
+    try:
+        chunk_decision = ChunkDecision(
+            decision_id=decision_id,
+            suggestion_id=suggestion_id,
+            session_id=session.session_id,
+            file_id=suggestion.file_id,
+            chunk_index=chunk_index,
+            original_code="", # Optional, not provided in body typically, but schema requires it. We'll set empty string if unset.
+            proposed_code="", # Optional
+            final_code=final_code,
+            decision=decision,
+            time_on_chunk_ms=time_on_chunk_ms,
+        )
+        db.add(chunk_decision)
+
+        write_event(
+            db,
+            session_id=session.session_id,
+            actor="user",
+            event_type=f"chunk_{decision}",
+            content=final_code,
+            metadata={
+                "suggestion_id": suggestion_id,
+                "chunk_index": chunk_index,
+                "time_on_chunk_ms": time_on_chunk_ms
+            },
+        )
+
+        current_decisions_count = db.query(ChunkDecision).filter_by(suggestion_id=suggestion_id).count()
+        if suggestion.hunks_count is not None and (current_decisions_count) == suggestion.hunks_count:
+            suggestion.resolved_at = now
+            all_decisions = db.query(ChunkDecision).filter_by(suggestion_id=suggestion_id).all()
+            suggestion.all_accepted = all(d.decision == "accepted" for d in all_decisions)
+            suggestion.any_modified = any(d.decision == "modified" for d in all_decisions)
+
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": "Transaction failed", "details": str(e)}), 500
+
+    return jsonify({
+        "decision_id": decision_id,
+        "decided_at": now.isoformat()
+    }), 201
