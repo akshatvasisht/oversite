@@ -12,7 +12,7 @@ def _make_client() -> genai.Client:
 
 
 def _model_name() -> str:
-    return os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+    return os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 
 class GeminiClient:

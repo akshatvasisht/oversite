@@ -10,6 +10,15 @@ interface FileExplorerProps {
     onCreateFile: (filename: string) => Promise<void>;
 }
 
+function fileIcon(filename: string): string {
+    if (filename.endsWith('.py')) return '🐍';
+    if (filename.endsWith('.js') || filename.endsWith('.ts')) return '📜';
+    if (filename.endsWith('.json')) return '{}';
+    if (filename.endsWith('.md')) return '📝';
+    if (filename.endsWith('.sql')) return '🗄';
+    return '📄';
+}
+
 const FileExplorer: React.FC<FileExplorerProps> = ({
     files,
     activeFileId,
@@ -27,30 +36,30 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 
     return (
         <aside className="file-explorer">
-            <h3 className="file-explorer-title">Files</h3>
+            <div className="file-explorer-title">Explorer</div>
             <div className="file-create-row">
                 <Input
                     type="text"
                     value={draftFilename}
                     onChange={(event) => setDraftFilename(event.target.value)}
-                    placeholder="utils.py"
+                    onKeyDown={(e) => { if (e.key === 'Enter') void handleCreate(); }}
+                    placeholder="new_file.py"
                     className="file-create-input"
                 />
-                <Button size="sm" variant="secondary" onClick={() => { void handleCreate(); }} className="file-create-button">
-                    Add
+                <Button size="sm" variant="secondary" onClick={() => { void handleCreate(); }}>
+                    +
                 </Button>
             </div>
             <div className="file-list">
                 {files.map((file) => (
-                    <Button
+                    <button
                         key={file.fileId}
-                        variant="ghost"
-                        size="sm"
                         onClick={() => { void onSelectFile(file.fileId); }}
                         className={`file-item ${file.fileId === activeFileId ? 'active' : ''}`}
                     >
+                        <span style={{ marginRight: 6, fontSize: 12 }}>{fileIcon(file.filename)}</span>
                         {file.filename}
-                    </Button>
+                    </button>
                 ))}
             </div>
         </aside>
@@ -58,4 +67,3 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 };
 
 export default FileExplorer;
-

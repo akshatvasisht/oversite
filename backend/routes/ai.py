@@ -65,7 +65,7 @@ def chat(session, db):
         file_id=file_id,
         prompt=prompt_text,
         response=response_text,
-        model=os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
+        model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
         prompt_tokens=None,
         shown_at=now,
         phase=phase,
