@@ -695,11 +695,11 @@ def test_seeded_profiles_score_correctly():
 ### MODEL — LLM Judge Prompt Engineering
 **Goal:** Narratives are specific, actionable, and calibrated. Tested on real sessions.
 
-- [ ] Write `judge_system_prompt.txt` — rubric definitions, output format instructions (summary + per-dimension + suggestions)
-- [ ] Write `judge_user_prompt_template.txt` — slots for scores, excerpts, metadata
-- [ ] Add variable-rename caveat: "Edit distance cannot detect variable renaming. Treat Component 3 scores with appropriate uncertainty on short chunks."
-- [ ] Test on 3–5 complete sessions from `seed.py`
-- [ ] Iterate prompt until narratives:
+- [x] Write `judge_system_prompt.txt` — rubric definitions, output format instructions (summary + per-dimension + suggestions)
+- [x] Write `judge_user_prompt_template.txt` — slots for scores, excerpts, metadata
+- [x] Add variable-rename caveat: "Edit distance cannot detect variable renaming. Treat Component 3 scores with appropriate uncertainty on short chunks."
+- [x] Test on 3–5 complete sessions from `seed.py`
+- [x] Iterate prompt until narratives:
   - Reference specific session events (actual prompt text or chunk reference)
   - Don't call a 3.2 score "excellent"
   - Produce 2–3 genuinely actionable suggestions
@@ -714,11 +714,11 @@ def test_seeded_profiles_score_correctly():
 ### BACKEND — Hardening + Auth
 **Goal:** No 500s on expected inputs; edge cases handled.
 
-- [ ] `POST /auth/login` — check against hardcoded test accounts, return `{ userId, role, token }`
-- [ ] `time_on_chunk_ms` server-side clamp: `max(100, min(300_000, value))`
-- [ ] `POST /session/end` on already-ended session → 400
-- [ ] Empty session scoring (0 prompts, 0 chunks, 0 executes) → graceful fallback, not crash
-- [ ] Dual-write transaction rollback test
+- [x] `POST /auth/login` — check against hardcoded test accounts, return `{ userId, role, token }`
+- [x] `time_on_chunk_ms` server-side clamp: `max(100, min(300_000, value))`
+- [x] `POST /session/end` on already-ended session → 400
+- [x] Empty session scoring (0 prompts, 0 chunks, 0 executes) → graceful fallback, not crash
+- [x] Dual-write transaction rollback test
 
 **Test gate — `test_edge_cases.py`:**
 ```python

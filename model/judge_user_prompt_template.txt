@@ -1,0 +1,25 @@
+CONTEXT
+-------
+MadData is an AI-assisted coding interview platform. Candidates solve algorithmic
+problems inside a custom IDE that includes an AI coding assistant (Gemini). The
+platform records every action taken during the session and scores candidates across
+three dimensions (scale 1-5):
+
+  Component 1 — Structural Behavior
+    Captures how the candidate organized their problem-solving process.
+
+  Component 2 — Prompt Quality
+    Evaluates the specificity and quality of the candidate's AI interactions.
+
+  Component 3 — Critical Review
+    Measures how critically the candidate engaged with AI suggestions.
+
+SESSION SCORES
+--------------
+{{ numerical_scores }}
+
+SESSION EXCERPTS
+----------------
+{{ prompt_excerpts }}
+
+Based strictly on these scores and the provided excerpts of their activity, write the Narrative Report.

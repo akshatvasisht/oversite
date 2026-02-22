@@ -242,11 +242,21 @@ def trigger_scoring(session_id, db):
     Runs the full scoring pipeline and starts the async judge task.
     """
     try:
-        c1 = run_component1(session_id, db)
-        c2 = run_component2(session_id, db)
-        c3 = run_component3(session_id, db)
+        events_count = db.query(Event).filter_by(session_id=session_id).count()
+        prompts_count = db.query(AIInteraction).filter_by(session_id=session_id).count()
         
-        weighted_score, label = aggregate_scores(c1, c2, c3)
+        if events_count == 0 and prompts_count == 0:
+            c1 = {"score": 3.0, "fallback": True}
+            c2 = {"score": 3.0}
+            c3 = {"score": 3.0}
+            weighted_score = 3.0
+            label = "Not Enough Data"
+        else:
+            c1 = run_component1(session_id, db)
+            c2 = run_component2(session_id, db)
+            c3 = run_component3(session_id, db)
+            
+            weighted_score, label = aggregate_scores(c1, c2, c3)
         
         score_id = str(uuid_4_placeholder()) # We'll fetch uuid from uuid module in a bit or just use uuid.uuid4()
         import uuid
@@ -298,14 +308,28 @@ def async_judge_task(session_id, score_id, scores_dict, excerpts):
     db = SessionLocal()
     try:
         client = GeminiClient()
-        system_prompt = (
-            "You are a senior technical interviewer. Analyze the provided session metrics "
-            "and excerpts to write a professional, balanced 2-3 paragraph 'Narrative Report' "
-            "about the candidate's balance between independent thought and AI assistance. "
-            "Use the RUBRIC and OVERALL LABELS provided in context."
-        )
         
-        narrative = client.judge_call(scores_dict, excerpts, system_prompt)
+        base_path = os.path.dirname(__file__)
+        prompts_dir = os.environ.get(
+            "MODEL_ARTIFACTS_DIR", 
+            os.path.join(os.path.dirname(base_path), "model", "models")
+        )
+        # Assuming the text files are in the 'model' directory, not 'model/models'
+        model_dir = os.path.dirname(prompts_dir) if prompts_dir.endswith("models") else prompts_dir
+        
+        system_prompt_path = os.path.join(model_dir, "judge_system_prompt.txt")
+        user_prompt_path = os.path.join(model_dir, "judge_user_prompt_template.txt")
+        
+        with open(system_prompt_path, "r") as f:
+            system_prompt = f.read()
+            
+        with open(user_prompt_path, "r") as f:
+            user_prompt_template = f.read()
+            
+        user_prompt = user_prompt_template.replace("{{ numerical_scores }}", json.dumps(scores_dict, indent=2))
+        user_prompt = user_prompt.replace("{{ prompt_excerpts }}", excerpts)
+        
+        narrative = client.judge_call(user_prompt, system_prompt)
         
         score_record = db.query(SessionScore).filter_by(score_id=score_id).first()
         if score_record:

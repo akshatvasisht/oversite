@@ -22,7 +22,7 @@ def test_overview_filters_correctly(client):
     db.add(s2)
     db.commit()
 
-    resp = client.get('/api/v1/analytics/overview?completed_only=true')
+    resp = client.get('/api/v1/analytics/overview?completed_only=true', headers={'Authorization': 'Bearer mock-jwt-admin-admin1'})
     data = resp.get_json()
     assert len(data['sessions']) >= 1
     session_ids = [s['session_id'] for s in data['sessions']]
@@ -36,7 +36,7 @@ def test_session_analytics_returns_expected_keys(client):
     db.add(s3)
     db.commit()
     
-    resp = client.get(f'/api/v1/analytics/session/{s3_id}')
+    resp = client.get(f'/api/v1/analytics/session/{s3_id}', headers={'Authorization': 'Bearer mock-jwt-admin-admin1'})
     assert resp.status_code == 200
     data = resp.get_json()
     
