@@ -78,13 +78,28 @@ const QuestionsPage = () => {
   if (role !== 'candidate') return <Navigate to="/login" replace />;
 
   const questions = [
-    { id: 'q1', company: 'MadData', title: 'Data Pipeline Challenge', duration: '60 min', status: 'pending' },
+    {
+      id: 'q1',
+      company: 'MadData',
+      title: 'Shopping Cart Debugger',
+      description: 'A discount engine produces wrong totals when a coupon and a quantity tier are both active. Trace the logic across 3 files and fix the order of operations.',
+      duration: '60 min',
+      difficulty: 'Medium',
+      files: ['cart.py', 'product.py', 'discount.py'],
+      status: 'pending',
+    },
   ];
 
   const statusVariant = (status: string): 'outline' | 'secondary' | 'warning' => {
     if (status === 'submitted') return 'secondary';
     if (status === 'in progress') return 'warning';
     return 'outline';
+  };
+
+  const difficultyColor: Record<string, string> = {
+    Easy: '#22c55e',
+    Medium: '#f59e0b',
+    Hard: '#ef4444',
   };
 
   return (
@@ -106,7 +121,18 @@ const QuestionsPage = () => {
             </div>
             <div className="question-content">
               <h2>{question.title}</h2>
-              <p className="muted" style={{ margin: 0, fontSize: 13 }}>{question.duration}</p>
+              <p className="muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>{question.description}</p>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: difficultyColor[question.difficulty] }}>
+                  {question.difficulty}
+                </span>
+                <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>·</span>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{question.duration}</span>
+                <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>·</span>
+                <span style={{ fontSize: 11, color: 'var(--text-faint)', fontFamily: "'JetBrains Mono', monospace" }}>
+                  {question.files.join('  ')}
+                </span>
+              </div>
               <Button
                 disabled={question.status === 'submitted'}
                 onClick={() => navigate(`/session/${question.id}`)}
@@ -249,15 +275,49 @@ const SessionPage = () => {
           <section className="problem-pane" onClick={() => sendPanelEvent('orientation')}>
             <div className="pane-title">Problem</div>
             <div className="pane-body">
-              <h2>Session {id}</h2>
-              <p>Build a clean and testable solution. Use multiple files if needed.</p>
-              <ul>
-                <li>Keep logic modular.</li>
-                <li>Include edge-case handling.</li>
-                <li>Explain assumptions in comments.</li>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <h2 style={{ margin: 0 }}>Shopping Cart Debugger</h2>
+                <Badge variant="warning">Medium</Badge>
+              </div>
+
+              <p style={{ marginTop: 0 }}>
+                Your team's e-commerce checkout is generating <strong>incorrect totals</strong> when
+                customers use a discount coupon on a large order. QA has confirmed the bug only
+                appears when <em>both</em> a coupon code and a quantity-based discount are active at
+                the same time.
+              </p>
+
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '16px 0 8px' }}>The Bug</h3>
+              <p style={{ margin: '0 0 12px' }}>
+                The <code style={{ background: 'var(--code-bg)', padding: '1px 5px', borderRadius: 4, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>DiscountEngine.apply()</code> method
+                in <code style={{ background: 'var(--code-bg)', padding: '1px 5px', borderRadius: 4, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>discount.py</code> applies
+                discounts in the wrong order, causing customers to be <strong>undercharged</strong>.
+              </p>
+
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '16px 0 8px' }}>Example</h3>
+              <div style={{ background: 'var(--code-bg)', borderRadius: 6, padding: '10px 12px', fontSize: 12, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.7, color: '#c9d1d9', marginBottom: 12 }}>
+                <div style={{ color: '#8b949e' }}># 5 shirts @ $25 + coupon SAVE20</div>
+                <div>subtotal = $125.00</div>
+                <div style={{ color: '#f87171' }}>wrong  → $125×0.80=$100 − $7.50 = <strong>$92.50</strong></div>
+                <div style={{ color: '#4ade80' }}>correct→ $125−$7.50=$117.50 × 0.80 = <strong>$94.00</strong></div>
+              </div>
+
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '16px 0 8px' }}>Your Task</h3>
+              <ul style={{ margin: '0 0 12px', paddingLeft: 18 }}>
+                <li>Read <code style={{ background: 'var(--code-bg)', padding: '1px 4px', borderRadius: 3, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>discount.py</code>, <code style={{ background: 'var(--code-bg)', padding: '1px 4px', borderRadius: 3, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>cart.py</code>, and <code style={{ background: 'var(--code-bg)', padding: '1px 4px', borderRadius: 3, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>product.py</code></li>
+                <li>Identify the ordering bug in <code style={{ background: 'var(--code-bg)', padding: '1px 4px', borderRadius: 3, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>DiscountEngine.apply()</code></li>
+                <li>Fix it so all tests in <code style={{ background: 'var(--code-bg)', padding: '1px 4px', borderRadius: 3, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>tests/test_cart.py</code> pass</li>
+                <li>Add a comment explaining the correct order</li>
               </ul>
-              {sessionId && <p className="muted">Session: {sessionId.slice(0, 8)}…</p>}
-              {error && <p className="error-text">{error}</p>}
+
+              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '16px 0 8px' }}>Discount Rules</h3>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
+                <li>Quantity tiers: 3+ units → $0.75/unit, 5+ → $1.50/unit, 10+ → $3.00/unit</li>
+                <li>Coupons: SAVE10 (10% off), SAVE20 (20% off), HALFOFF (50% off)</li>
+                <li>Quantity discounts apply first; percentage applies to the reduced total</li>
+              </ul>
+
+              {error && <p className="error-text" style={{ marginTop: 12 }}>{error}</p>}
             </div>
           </section>
 
