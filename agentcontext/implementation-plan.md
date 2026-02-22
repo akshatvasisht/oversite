@@ -252,10 +252,10 @@ def test_identical_content_produces_no_hunks():
 ### FRONTEND-A — Autosave + File Switching
 **Goal:** Explorer complete, autosave wired to backend.
 
-- [ ] File explorer highlights active file, supports switching
-- [ ] `useAutosave` hook — 2s debounce, calls `POST /events/editor` on content change
-- [ ] File switch triggers immediate save of previous file before loading next
-- [ ] Monaco: Python syntax highlighting, line numbers on, minimap off
+- [x] File explorer highlights active file, supports switching
+- [x] `useAutosave` hook — 2s debounce, calls `POST /events/editor` on content change
+- [x] File switch triggers immediate save of previous file before loading next
+- [x] Monaco: Python syntax highlighting, line numbers on, minimap off
 
 **Test gate:** Open 3 files, edit each — `POST /events/editor` fires within 2s of stopping typing for each. Check network tab. ✅
 
@@ -264,10 +264,10 @@ def test_identical_content_produces_no_hunks():
 ### FRONTEND-B — Questions List Page
 **Goal:** Candidate sees assigned questions with correct status badges.
 
-- [ ] `QuestionsPage.tsx` — fetches `GET /questions` (backend stub: hardcoded list)
-- [ ] `QuestionCard.tsx` — company name, title, status badge, Start/Resume button
-- [ ] Submitted cards: button disabled
-- [ ] Start → navigate to `/session/:questionId`
+- [x] `QuestionsPage.tsx` — fetches `GET /questions` (backend stub: hardcoded list)
+- [x] `QuestionCard.tsx` — company name, title, status badge, Start/Resume button
+- [x] Submitted cards: button disabled
+- [x] Start → navigate to `/session/:questionId`
 
 > **⚠️ Handoff needed from Backend by Hour 3:** `GET /questions` stub returning `[{ questionId, title, company, status }]`.
 
@@ -359,11 +359,11 @@ def test_modified_decision_stores_edited_code():
 ### FRONTEND-A — AI Chat Panel
 **Goal:** Candidate can send prompts, see responses, `POST /suggestions` auto-called when `has_code_changes`.
 
-- [ ] `AIChatPanel.tsx` — message thread, input box, send button
-- [ ] On send: `POST /ai/chat` with `{ prompt, file_id, conversation_history }`
-- [ ] Render response with timestamp in thread
-- [ ] Loading spinner during Gemini request
-- [ ] If `has_code_changes: true`: extract proposed code from response (code block detection), call `POST /suggestions` automatically, store returned `suggestion_id` + `hunks` in component state
+- [x] `AIChatPanel.tsx` — message thread, input box, send button
+- [x] On send: `POST /ai/chat` with `{ prompt, file_id, conversation_history }`
+- [x] Render response with timestamp in thread
+- [x] Loading spinner during Gemini request
+- [x] If `has_code_changes: true`: extract proposed code from response (code block detection), call `POST /suggestions` automatically, store returned `suggestion_id` + `hunks` in component state
 
 **Test gate:** Type a prompt, send, see AI response in chat. When response contains a code block, `POST /suggestions` fires automatically. No double submissions on fast clicks. ✅
 
@@ -372,10 +372,10 @@ def test_modified_decision_stores_edited_code():
 ### FRONTEND-B — Admin Dashboard
 **Goal:** Admin sees interviewee table with correct columns.
 
-- [ ] `AdminDashboard.tsx` — fetches `GET /analytics/overview`
-- [ ] `IntervieweeTable.tsx` — Name, Company, Status, Score, Date Submitted
-- [ ] Click completed row → navigate to `/admin/:candidateId`
-- [ ] Incomplete rows: no link, grayed score cell
+- [x] `AdminDashboard.tsx` — fetches `GET /analytics/overview`
+- [x] `IntervieweeTable.tsx` — Name, Company, Status, Score, Date Submitted
+- [x] Click completed row → navigate to `/admin/:candidateId`
+- [x] Incomplete rows: no link, grayed score cell
 
 **Test gate:** Dashboard renders with mocked data. Clicking a completed row navigates. Clicking incomplete row does nothing. ✅
 
@@ -463,11 +463,11 @@ def test_c2_per_prompt_scores_populated():
 ### FRONTEND-B — Score Detail View
 **Goal:** Admin sees full behavioral report for a candidate.
 
-- [ ] `ScoreDetailPage.tsx` — fetches `GET /analytics/session/:sessionId`
-- [ ] `ScoreSummary.tsx` — overall label badge (color-coded), weighted score
-- [ ] `RubricBreakdown.tsx` — 12 dimensions, 1–5 scores, color gradient
-- [ ] `NarrativeReport.tsx` — renders `llm_narrative`; shows "Generating report..." skeleton if null; polls every 5s until populated (max 3 retries)
-- [ ] Back button → `/admin`
+- [x] `ScoreDetailPage.tsx` — fetches `GET /analytics/session/:sessionId`
+- [x] `ScoreSummary.tsx` — overall label badge (color-coded), weighted score
+- [x] `RubricBreakdown.tsx` — 12 dimensions, 1–5 scores, color gradient
+- [x] `NarrativeReport.tsx` — renders `llm_narrative`; shows "Generating report..." skeleton if null; polls every 5s until populated (max 3 retries)
+- [x] Back button → `/admin`
 
 **Test gate:** Navigate to `/admin/:candidateId` with mocked response. All panels render. Null `llm_narrative` shows skeleton with poll behavior. ✅
 
@@ -541,10 +541,10 @@ def test_full_pipeline_on_seeded_session():
 ### FRONTEND-A — Terminal Panel
 **Goal:** Terminal shows output, Run fires execute event.
 
-- [ ] `TerminalPanel.tsx` — output log (monospace), run command input, Run button, Clear button
-- [ ] Run → `POST /events/execute` with `{ command, exit_code, output }`
-- [ ] Exit 0 → green "✓ Passed". Non-zero → red "✗ Failed"
-- [ ] Output auto-scrolls to bottom
+- [x] `TerminalPanel.tsx` — output log (monospace), run command input, Run button, Clear button
+- [x] Run → `POST /events/execute` with `{ command, exit_code, output }`
+- [x] Exit 0 → green "✓ Passed". Non-zero → red "✗ Failed"
+- [x] Output auto-scrolls to bottom
 
 **Test gate:** Type `python solution.py`, click Run, see output. `POST /events/execute` fires with correct `exit_code` in network tab. ✅
 
@@ -629,7 +629,11 @@ def test_overview_filters_correctly():
 - [x] `SubmitModal.tsx` — "Are you sure?" + warning, Confirm/Cancel
 - [x] Confirm → `POST /session/end` → redirect to `/questions` with status updated to Submitted
 - [x] Panel focus tracking: `POST /events/panel` on every click into editor/chat/terminal/filetree
+<<<<<<< HEAD
 - [x] Phase progress bar in top bar (update on `PATCH /session/phase`)
+=======
+- [/] Phase progress bar in top bar (update on `PATCH /session/phase`)
+>>>>>>> e3ef747 (feat: Implement auth persistence and role guards, harden backend resilience, and resolve frontend test failures.)
 
 **Test gate:** Click Submit → modal appears. Confirm → session ends, redirected to questions, card shows "Submitted". Events table has `panel_focus` events for editor and chat. ✅
 
@@ -700,7 +704,7 @@ def test_overview_filters_correctly():
 - [x] Dual-write transaction rollback test
 
 **Test gate — `test_edge_cases.py`:**
-```python
+```pythonf
 def test_empty_session_scores_without_crash():
     sid = start_session()
     end_session(sid)  # no events in between

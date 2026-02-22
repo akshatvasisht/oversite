@@ -330,9 +330,11 @@ const SessionPage = () => {
 const ProtectedRoute = ({ children, allowedRole }: { children: ReactElement, allowedRole?: 'admin' | 'candidate' }) => {
   const { isAuthenticated, role } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+
   if (allowedRole && role !== allowedRole) {
     return <Navigate to={role === 'admin' ? '/admin' : '/questions'} replace />;
   }
+
   return children;
 };
 

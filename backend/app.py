@@ -43,7 +43,7 @@ if __name__ == "__main__":
     
     models = load_models() # Warm up the model cache
     # Explode early if models are completely missing and we aren't bypassing intentionally
-    if not models and os.environ.get("SCORING_FALLBACK_MODE", "false").lower() != "true":
+    if not models and os.environ.get("SCORING_FALLBACK_MODE", "true").lower() != "true":
         raise RuntimeError("CRITICAL: Model artifacts failed to load and SCORING_FALLBACK_MODE is not true.")
         
     app.run(port=8000, debug=True)

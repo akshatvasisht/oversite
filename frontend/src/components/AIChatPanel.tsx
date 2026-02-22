@@ -203,7 +203,7 @@ export default function AIChatPanel({
 
             {pendingSuggestion && (
                 <div className="chat-suggestion-banner">
-                    Suggestion pending — review the code block above.
+                    Suggestion pending in editor — review the code block above.
                 </div>
             )}
 
