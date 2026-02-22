@@ -1,9 +1,10 @@
-import { useState, type ReactElement } from 'react';
+import { useState, useEffect, type ReactElement } from 'react';
 import api from './api';
 import { BrowserRouter as Router, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
 import AIChatPanel, { type PendingSuggestion } from './components/AIChatPanel';
 import AdminDashboardPage from './components/AdminDashboard';
+import { ToastProvider, useToast } from './context/ToastContext';
 import FileExplorer from './components/FileExplorer';
 import MonacoEditorWrapper from './components/MonacoEditorWrapper';
 import ScoreDetailPage from './components/ScoreDetailPage';
@@ -85,20 +86,18 @@ const LoginPage = () => {
 const QuestionsPage = () => {
   const { role, logout } = useAuth();
   const navigate = useNavigate();
-  if (role !== 'candidate') return <Navigate to="/login" replace />;
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const questions = [
-    {
-      id: 'q1',
-      company: 'MadData',
-      title: 'Shopping Cart Debugger',
-      description: 'A discount engine produces wrong totals when a coupon and a quantity tier are both active. Trace the logic across 3 files and fix the order of operations.',
-      duration: '60 min',
-      difficulty: 'Medium',
-      files: ['cart.py', 'product.py', 'discount.py'],
-      status: 'pending',
-    },
-  ];
+  useEffect(() => {
+    if (role !== 'candidate') return;
+    api.get('/questions')
+      .then(res => setQuestions(res.data))
+      .catch(err => console.error('Failed to fetch questions', err))
+      .finally(() => setLoading(false));
+  }, [role]);
+
+  if (role !== 'candidate') return <Navigate to="/login" replace />;
 
   const statusVariant = (status: string): 'outline' | 'secondary' | 'warning' => {
     if (status === 'submitted') return 'secondary';
@@ -122,6 +121,9 @@ const QuestionsPage = () => {
         <Button type="button" variant="outline" onClick={logout}>Logout</Button>
       </div>
       <p className="muted" style={{ marginBottom: 20, fontSize: 14 }}>Select an assignment to open the coding workspace.</p>
+
+      {loading && <p className="muted">Loading assessments...</p>}
+
       <div className="question-grid">
         {questions.map((question) => (
           <div key={question.id} className={`question-card ${question.status === 'submitted' ? 'done' : ''}`}>
@@ -168,6 +170,9 @@ const SessionPage = () => {
   const [pendingSuggestion, setPendingSuggestion] = useState<PendingSuggestion | null>(null);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [activePhase, setActivePhase] = useState<'orientation' | 'implementation' | 'verification'>('orientation');
+
   const { userId, setSessionId } = useAuth();
   const {
     loading,
@@ -193,6 +198,8 @@ const SessionPage = () => {
     delayMs: 2000,
   });
 
+  const { showToast } = useToast();
+
   const sendPanelEvent = (panel: string): void => {
     if (!sessionId) return;
     void api.post('/events/panel', { panel });
@@ -205,9 +212,33 @@ const SessionPage = () => {
     try {
       await api.post('/events/execute', { command: cmd, exit_code: 0, output: 'Execution finished.' });
       setTerminalLines((prev) => [...prev, 'Execution finished.']);
+      showToast('Code executed successfully', 'success');
     } catch {
       setTerminalLines((prev) => [...prev, 'Execution finished.']);
+      showToast('Execution failed', 'error');
     }
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setElapsedSeconds(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handlePhaseChange = async (phase: 'orientation' | 'implementation' | 'verification') => {
+    setActivePhase(phase);
+    try {
+      await api.patch('/session/phase', { phase });
+    } catch (err) {
+      console.error('Failed to update phase', err);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   const confirmSubmit = async (): Promise<void> => {
@@ -260,7 +291,30 @@ const SessionPage = () => {
           <span className="session-topbar-brand">MadData</span>
           <span className="session-topbar-sep">›</span>
           <span className="session-topbar-title">Session {id}</span>
+
+          <div className="phase-navigation">
+            <button
+              className={`phase-btn ${activePhase === 'orientation' ? 'active' : ''}`}
+              onClick={() => handlePhaseChange('orientation')}
+            >
+              1. Orientation
+            </button>
+            <button
+              className={`phase-btn ${activePhase === 'implementation' ? 'active' : ''}`}
+              onClick={() => handlePhaseChange('implementation')}
+            >
+              2. Implementation
+            </button>
+            <button
+              className={`phase-btn ${activePhase === 'verification' ? 'active' : ''}`}
+              onClick={() => handlePhaseChange('verification')}
+            >
+              3. Verification
+            </button>
+          </div>
+
           <div className="session-topbar-actions">
+            <div className="session-timer">{formatTime(elapsedSeconds)}</div>
             <Badge variant="secondary" className="status-pill">
               {autosaveLabel}
             </Badge>
@@ -417,9 +471,11 @@ const AppRoutes = () => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
+      <ToastProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
+      </ToastProvider>
     </AuthProvider>
   );
 }

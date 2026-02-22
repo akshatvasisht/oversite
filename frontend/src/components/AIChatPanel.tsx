@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../api';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
+import { useToast } from '../context/ToastContext';
 
 export interface Hunk {
     start_line: number;
@@ -81,6 +82,7 @@ export default function AIChatPanel({
     onSuggestion,
     onResolvePending,
 }: AIChatPanelProps) {
+    const { showToast } = useToast();
     const [messages, setMessages] = useState<Message[]>([]);
     const [history, setHistory] = useState<HistoryEntry[]>([]);
     const [input, setInput] = useState('');
@@ -155,7 +157,9 @@ export default function AIChatPanel({
                         };
                         onSuggestion({ suggestionId: suggestion_id, hunks, shownAt: shown_at });
                         addMessage('system', 'Suggestion ready — review the code above and apply as needed.');
+                        showToast('AI Suggestion ready!', 'info');
                     } catch {
+                        showToast('Failed to create suggestion', 'error');
                         // Suggestion creation failed silently; chat still works
                     }
                 }

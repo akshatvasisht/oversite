@@ -103,6 +103,45 @@ def end_session(session, db):
     }), 200
 
 
+@session_bp.route("/session/phase", methods=["PATCH"])
+@require_session
+def update_phase(session, db):
+    data = request.get_json()
+    phase = data.get("phase")
+    if not phase:
+        return jsonify({"error": "phase is required"}), 400
+
+    # Log as panel_focus event to track time spent in phase
+    write_event(
+        db,
+        session_id=session.session_id,
+        actor="user",
+        event_type="panel_focus",
+        content=phase,
+        metadata={"phase": phase},
+    )
+
+    db.commit()
+    return jsonify({"message": "Phase updated", "phase": phase}), 200
+
+
+@session_bp.route("/questions", methods=["GET"])
+def get_questions():
+    # Hardcoded for demo, but served via API
+    return jsonify([
+        {
+            "id": "q1",
+            "company": "MadData",
+            "title": "Shopping Cart Debugger",
+            "description": "A discount engine produces wrong totals when a coupon and a quantity tier are both active. Trace the logic across 3 files and fix the order of operations.",
+            "duration": "60 min",
+            "difficulty": "Medium",
+            "files": ["cart.py", "product.py", "discount.py"],
+            "status": "pending",
+        }
+    ]), 200
+
+
 
 @session_bp.route("/session/<session_id>/trace", methods=["GET"])
 def get_trace(session_id):
