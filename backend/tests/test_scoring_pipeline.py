@@ -1,10 +1,10 @@
-import models
+import schema
 import time
 from unittest.mock import patch, MagicMock
 from sqlalchemy.orm import sessionmaker
 from helpers import start_session, seed_complete_session
 
-@patch("scoring.GeminiClient")
+@patch("services.scoring.GeminiClient")
 def test_full_pipeline_on_end_session(mock_gemini_class, client, engine):
     # Setup mock
     mock_client = MagicMock()
@@ -23,7 +23,7 @@ def test_full_pipeline_on_end_session(mock_gemini_class, client, engine):
     
     # Verify SessionScore created
     db = TestSession()
-    score = db.query(models.SessionScore).filter_by(session_id=sid).first()
+    score = db.query(schema.SessionScore).filter_by(session_id=sid).first()
     assert score is not None
     assert score.overall_label in ["strategic", "balanced", "over_reliant"]
     assert score.weighted_score > 0

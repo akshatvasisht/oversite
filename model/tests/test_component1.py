@@ -7,7 +7,7 @@ import numpy as np
 from features import FEATURE_NAMES
 
 MODELS_DIR = "model/models"
-MODEL_PATH = "model/models/component1_xgboost.joblib"
+MODEL_PATH = "model/models/behavioral_classifier.joblib"
 IMPORTANCES_PATH = "model/models/c1_importances.json"
 
 def test_c1_model_loads_and_predicts():

@@ -1,6 +1,6 @@
 from unittest.mock import patch
 from sqlalchemy.orm import sessionmaker
-from models import ChunkDecision, Event, AISuggestion
+from schema import ChunkDecision, Event, AISuggestion
 from helpers import (
     make_session, make_file, make_interaction, 
     post_suggestion, decide_chunk

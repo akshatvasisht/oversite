@@ -1,7 +1,7 @@
 import uuid
 import json
 from datetime import datetime, timezone
-from models import Event
+from schema import Event
 
 
 def write_event(db, session_id, actor, event_type, content="", metadata=None):

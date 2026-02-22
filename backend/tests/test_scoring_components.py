@@ -1,11 +1,11 @@
 from helpers import seed_rich_session
-from scoring import extract_c1_features, run_component1, run_component2, run_component3, aggregate_scores
+from services.scoring import extract_behavioral_features, run_component1, run_component2, run_component3, aggregate_scores
 
-def test_extract_c1_features(db_session):
+def test_extract_behavioral_features(db_session):
     sid = "test-session"
     seed_rich_session(db_session, sid)
     
-    features = extract_c1_features(sid, db_session)
+    features = extract_behavioral_features(sid, db_session)
     assert len(features) == 15
     
     # FEATURE_NAMES order:
@@ -58,7 +58,7 @@ def test_run_component1_fallback(db_session):
     sid = "test-session"
     seed_rich_session(db_session, sid)
     from unittest.mock import patch
-    with patch("scoring.load_models", return_value={}):
+    with patch("services.scoring.load_models", return_value={}):
         res = run_component1(sid, db_session)
         assert res['fallback'] == True
         assert res['label'] == "balanced"

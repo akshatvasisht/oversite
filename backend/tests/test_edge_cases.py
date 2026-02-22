@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from app import app
 from db import get_db
-from models import Session, SessionScore, Event, AISuggestion, EditorEvent
+from schema import Session, SessionScore, Event, AISuggestion, EditorEvent
 
 @pytest.fixture
 def client():

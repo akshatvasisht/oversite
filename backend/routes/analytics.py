@@ -2,8 +2,8 @@ import json
 from flask import Blueprint, jsonify, request
 from sqlalchemy import desc
 from db import get_db
-from models import Session, SessionScore, Event, AIInteraction, ChunkDecision
-from scoring import trigger_scoring, extract_c1_features, FEATURE_NAMES
+from schema import Session, SessionScore, Event, AIInteraction, ChunkDecision
+from services.scoring import trigger_scoring, extract_behavioral_features, FEATURE_NAMES
 from routes.auth import require_role
 
 analytics_bp = Blueprint("analytics", __name__)
@@ -75,7 +75,7 @@ def get_session_analytics(session_id):
             }
 
         # 2. Compute live metrics using the same feature extraction used in scoring
-        features_array = extract_c1_features(session_id, db)
+        features_array = extract_behavioral_features(session_id, db)
         live_metrics = {name: float(val) for name, val in zip(FEATURE_NAMES, features_array)}
 
         return jsonify({

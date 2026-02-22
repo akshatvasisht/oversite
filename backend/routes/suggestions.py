@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
-from models import AISuggestion, EditorEvent
+from schema import AISuggestion, EditorEvent
 from utils import write_event
 from routes.session import require_session
 
@@ -161,7 +161,7 @@ def get_suggestion(session, db, suggestion_id):
 @suggestions_bp.route("/suggestions/<suggestion_id>/chunks/<int:chunk_index>/decide", methods=["POST"])
 @require_session
 def decide_chunk(session, db, suggestion_id, chunk_index):
-    from models import ChunkDecision
+    from schema import ChunkDecision
     
     suggestion = db.query(AISuggestion).filter_by(suggestion_id=suggestion_id).first()
     if not suggestion or suggestion.session_id != session.session_id:

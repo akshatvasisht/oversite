@@ -26,7 +26,7 @@ REPROMPT_INDICATORS = [
     r"error on", r"clarify", r"don't see", r"where is"
 ]
 
-def extract_c2_features(prompt_text: str, next_turn_text: str = "") -> Dict[str, float]:
+def extract_prompt_quality_features(prompt_text: str, next_turn_text: str = "") -> Dict[str, float]:
     """
     Extracts Component 2 (prompt quality) features from a single prompt string.
     This serves as the scoring engine contract for assessing candidate specificity.
@@ -115,7 +115,7 @@ def score_prompts(prompt_list: list[str]) -> list[float]:
         return []
 
     # Path to the trained model
-    model_path = os.path.join(os.path.dirname(__file__), "models", "component2_xgboost.joblib")
+    model_path = os.path.join(os.path.dirname(__file__), "models", "prompt_quality_classifier.joblib")
     if not os.path.exists(model_path):
         logger.error(f"Model artifact not found at {model_path}")
         # Fallback to a neutral score if no model exists
@@ -131,7 +131,7 @@ def score_prompts(prompt_list: list[str]) -> list[float]:
     # It attempts to predict re_prompt_indicator (0=Good, 1=Bad).
     scores = []
     for prompt in prompt_list:
-        features_dict = extract_c2_features(prompt)
+        features_dict = extract_prompt_quality_features(prompt)
         
         # We drop the weak supervision labels and target just the 5 structural heuristics
         feature_vector = np.array([[
