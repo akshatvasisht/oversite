@@ -25,9 +25,15 @@ const MonacoEditorWrapper: React.FC<MonacoEditorWrapperProps> = ({
                 value={content}
                 onChange={onChange}
                 onMount={onMount}
+                theme="vs-dark"
                 options={{
                     lineNumbers: 'on',
-                    minimap: { enabled: false }
+                    minimap: { enabled: false },
+                    fontSize: 13,
+                    fontFamily: "'JetBrains Mono', Consolas, 'Courier New', monospace",
+                    fontLigatures: true,
+                    scrollBeyondLastLine: false,
+                    padding: { top: 12, bottom: 12 },
                 }}
             />
         </div>
