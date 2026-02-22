@@ -417,7 +417,22 @@ export const useSession = ({
 
             if (isCancelled) return;
 
-            const starterFiles = fetchedFiles ?? Q1_FILES.map((f) => createLocalFile(f.filename, f.content));
+            let starterFiles: SessionFile[];
+            if (fetchedFiles) {
+                // Merge rehydrated files with boilerplate
+                const boilerplate = Q1_FILES.map((f) => createLocalFile(f.filename, f.content));
+                const merged = [...fetchedFiles];
+
+                for (const b of boilerplate) {
+                    if (!merged.find(m => m.filename === b.filename)) {
+                        merged.push(b);
+                    }
+                }
+                starterFiles = merged;
+            } else {
+                starterFiles = Q1_FILES.map((f) => createLocalFile(f.filename, f.content));
+            }
+
             setSessionId(resolvedSessionId);
             setSessionIdInContext(resolvedSessionId);
             setFiles(starterFiles);

@@ -52,7 +52,7 @@ const MonacoEditorWrapper: React.FC<MonacoEditorWrapperProps> = ({
                     minimap: { enabled: false },
                     fontSize: 13,
                     fontFamily: "'JetBrains Mono', Consolas, 'Courier New', monospace",
-                    fontLigatures: true,
+                    fontLigatures: false,
                     scrollBeyondLastLine: false,
                     padding: { top: 12, bottom: 12 },
                 }}

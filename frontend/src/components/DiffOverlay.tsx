@@ -11,6 +11,8 @@ interface DiffOverlayProps {
     pendingSuggestion: PendingSuggestion | null;
     onResolvePending: () => void;
     onFileUpdate: (content: string) => void;
+    activeFileId: string | null;
+    sessionId: string | null;
 }
 
 class HunkContentWidget implements monaco.editor.IContentWidget {
@@ -41,6 +43,8 @@ export function DiffOverlay({
     pendingSuggestion,
     onResolvePending,
     onFileUpdate,
+    activeFileId,
+    sessionId,
 }: DiffOverlayProps) {
     const { showToast } = useToast();
     const [portals, setPortals] = useState<React.ReactPortal[]>([]);
