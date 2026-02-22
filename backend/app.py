@@ -9,6 +9,7 @@ from routes.files import files_bp
 from routes.ai import ai_bp
 from routes.suggestions import suggestions_bp
 from routes.events import events_bp
+from routes.analytics import analytics_bp
 from scoring import load_models
 
 import logging
@@ -28,6 +29,7 @@ app.register_blueprint(files_bp, url_prefix="/api/v1")
 app.register_blueprint(ai_bp, url_prefix="/api/v1")
 app.register_blueprint(suggestions_bp, url_prefix="/api/v1")
 app.register_blueprint(events_bp, url_prefix="/api/v1")
+app.register_blueprint(analytics_bp, url_prefix="/api/v1")
 
 @app.route("/api/v1/health")
 def health() -> Any:

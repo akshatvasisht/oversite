@@ -4,7 +4,8 @@ import joblib
 from prompt_features import extract_c2_features, score_prompts
 
 def test_c2_model_loads():
-    model_path = "model/models/component2_xgboost.joblib"
+    base_path = os.path.dirname(os.path.dirname(__file__))
+    model_path = os.path.join(base_path, "models", "component2_xgboost.joblib")
     model = joblib.load(model_path)
     feats = extract_c2_features("fix this")
     

@@ -11,21 +11,21 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 FEATURE_NAMES = [
-    'acceptance_rate',
-    'deliberation_time_avg',
-    'post_acceptance_edit_rate',
-    'verification_frequency',
-    'reprompt_ratio',
-    'chunk_acceptance_rate',
-    'passive_acceptance_rate',
-    'time_on_chunk_avg_ms',
-    'time_by_panel_editor_pct',
-    'time_by_panel_chat_pct',
-    'orientation_duration_s',
-    'iteration_depth',
-    'prompt_count_orientation_phase',
-    'prompt_count_implementation_phase',
-    'prompt_count_verification_phase'
+    'rate_acceptance',
+    'duration_deliberation_avg',
+    'rate_post_acceptance_edit',
+    'freq_verification',
+    'ratio_reprompt',
+    'rate_chunk_acceptance',
+    'rate_passive_acceptance',
+    'duration_chunk_avg_ms',
+    'pct_time_editor',
+    'pct_time_chat',
+    'duration_orientation_s',
+    'depth_iteration',
+    'count_prompt_orientation',
+    'count_prompt_implementation',
+    'count_prompt_verification'
 ]
 
 def compute_c1_features(
@@ -46,15 +46,15 @@ def compute_c1_features(
         accepted = [d for d in decisions if d.get('decision') == 'accepted']
         modified = [d for d in decisions if d.get('decision') == 'modified']
         
-        feats['acceptance_rate'] = len(accepted) / total_chunks
-        feats['chunk_acceptance_rate'] = (len(accepted) + len(modified)) / total_chunks
-        feats['passive_acceptance_rate'] = len(accepted) / total_chunks
+        feats['rate_acceptance'] = len(accepted) / total_chunks
+        feats['rate_chunk_acceptance'] = (len(accepted) + len(modified)) / total_chunks
+        feats['rate_passive_acceptance'] = len(accepted) / total_chunks
         
         times = [d.get('time_on_chunk_ms') for d in decisions if d.get('time_on_chunk_ms')]
         if times:
             avg_time = sum(times) / len(times)
-            feats['deliberation_time_avg'] = avg_time
-            feats['time_on_chunk_avg_ms'] = avg_time
+            feats['duration_deliberation_avg'] = avg_time
+            feats['duration_chunk_avg_ms'] = avg_time
             
         edit_rates = []
         for d in modified:
@@ -64,21 +64,21 @@ def compute_c1_features(
                 change = abs(len(final) - len(proposed)) / max(1, len(proposed))
                 edit_rates.append(change)
         if edit_rates:
-            feats['post_acceptance_edit_rate'] = sum(edit_rates) / len(edit_rates)
+            feats['rate_post_acceptance_edit'] = sum(edit_rates) / len(edit_rates)
 
     # 2. Event based metrics
     total_events = len(events)
     if total_events > 0:
         exec_count = len([e for e in events if e.get('event_type') == 'execute'])
-        feats['verification_frequency'] = exec_count / total_events
+        feats['freq_verification'] = exec_count / total_events
         
         panel_events = [e for e in events if e.get('event_type') == 'panel_focus']
         if panel_events:
             editor_count = len([e for e in panel_events if e.get('content') == 'editor'])
             chat_count = len([e for e in panel_events if e.get('content') == 'chat'])
             total_panel = len(panel_events)
-            feats['time_by_panel_editor_pct'] = editor_count / total_panel
-            feats['time_by_panel_chat_pct'] = chat_count / total_panel
+            feats['pct_time_editor'] = editor_count / total_panel
+            feats['pct_time_chat'] = chat_count / total_panel
             
         # Orientation Duration
         # Sort events by timestamp if not already sorted
@@ -94,7 +94,7 @@ def compute_c1_features(
             
             if fa_ts:
                 dur = (fa_ts - session_start).total_seconds()
-                feats['orientation_duration_s'] = max(0.0, dur)
+                feats['duration_orientation_s'] = max(0.0, dur)
             
         # Iteration Depth
         cycles = 0
@@ -105,13 +105,13 @@ def compute_c1_features(
             elif e.get('event_type') == 'execute' and last_was_edit:
                 cycles += 1
                 last_was_edit = False
-        feats['iteration_depth'] = float(cycles)
+        feats['depth_iteration'] = float(cycles)
 
     # 3. Interaction/Phase based metrics
     if interactions:
-        feats['prompt_count_orientation_phase'] = len([p for p in interactions if p.get('phase') == 'orientation'])
-        feats['prompt_count_implementation_phase'] = len([p for p in interactions if p.get('phase') == 'implementation'])
-        feats['prompt_count_verification_phase'] = len([p for p in interactions if p.get('phase') == 'verification'])
+        feats['count_prompt_orientation'] = len([p for p in interactions if p.get('phase') == 'orientation'])
+        feats['count_prompt_implementation'] = len([p for p in interactions if p.get('phase') == 'implementation'])
+        feats['count_prompt_verification'] = len([p for p in interactions if p.get('phase') == 'verification'])
         
         # Reprompt ratio
         sorted_prompts = sorted(interactions, key=lambda x: x.get('shown_at') if x.get('shown_at') else datetime.min)
@@ -124,7 +124,7 @@ def compute_c1_features(
             
             if prev_ts and curr_ts and (curr_ts - prev_ts).total_seconds() < 60:
                 reprompts += 1
-        feats['reprompt_ratio'] = reprompts / len(interactions)
+        feats['ratio_reprompt'] = reprompts / len(interactions)
 
     return np.array([feats[name] for name in FEATURE_NAMES], dtype=np.float32)
 
@@ -142,7 +142,7 @@ def extract_c1_features(data: Any) -> np.ndarray:
         row = data.iloc[0]
         feats = {name: float(row.get(name, np.nan)) for name in FEATURE_NAMES}
         # Backward compat for CUPS field names if they differ
-        if 'deliberation_time' in row: feats['deliberation_time_avg'] = float(row['deliberation_time'])
+        if 'deliberation_time' in row: feats['duration_deliberation_avg'] = float(row['deliberation_time'])
         
         return np.array([feats[name] for name in FEATURE_NAMES], dtype=np.float32)
     
