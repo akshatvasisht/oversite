@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 from db import get_db
-from schema import Session, Event
+from schema import Session, Event, File, EditorEvent
 from utils import write_event
 from services.scoring import trigger_scoring
 
@@ -39,6 +39,20 @@ def require_session(f):
 
 @session_bp.route("/session/start", methods=["POST"])
 def start_session():
+    """
+    Initializes a new session or rehydrates an existing one.
+    ---
+    Input (JSON):
+        - username (str): Candidate name
+        - project_name (str): ID of the question/project
+    Output (200/201):
+        - session_id (str): UUID of the session
+        - started_at (str): ISO timestamp
+        - files (list, optional): Rehydrated file contents if resuming
+        - rehydrated (bool, optional): True if resuming
+    Errors:
+        - 400: Missing username
+    """
     data = request.get_json()
     username = data.get("username")
     project_name = data.get("project_name")
@@ -48,9 +62,43 @@ def start_session():
 
     db = next(get_db())
     try:
-        session_id = str(uuid.uuid4())
+        existing_session = (
+            db.query(Session)
+            .filter_by(username=username, project_name=project_name)
+            .filter(Session.ended_at == None)
+            .order_by(Session.started_at.desc())
+            .first()
+        )
+
         now = datetime.now(timezone.utc)
 
+        if existing_session:
+            files = db.query(File).filter_by(session_id=existing_session.session_id).all()
+            files_data = []
+            for f in files:
+                last_event = (
+                    db.query(EditorEvent)
+                    .filter_by(file_id=f.file_id)
+                    .order_by(EditorEvent.timestamp.desc())
+                    .first()
+                )
+                content = last_event.content if last_event else (f.initial_content or "")
+                files_data.append({
+                    "fileId": f.file_id,
+                    "filename": f.filename,
+                    "language": f.language,
+                    "content": content,
+                    "persisted": True
+                })
+
+            return jsonify({
+                "session_id": existing_session.session_id,
+                "started_at": existing_session.started_at.isoformat(),
+                "files": files_data,
+                "rehydrated": True 
+            }), 200
+
+        session_id = str(uuid.uuid4())
         session = Session(
             session_id=session_id,
             username=username,
@@ -84,6 +132,16 @@ def start_session():
 @session_bp.route("/session/end", methods=["POST"])
 @require_session
 def end_session(session, db):
+    """
+    Submits the session and triggers the backend scoring pipeline.
+    ---
+    Output (200):
+        - session_id (str): UUID of the ended session
+        - ended_at (str): ISO timestamp
+        - duration_seconds (int): Total active duration
+    Errors:
+        - 400: Session already ended
+    """
     if session.ended_at:
         return jsonify({"error": "Session already ended"}), 400
 
@@ -103,9 +161,97 @@ def end_session(session, db):
     }), 200
 
 
+@session_bp.route("/session/phase", methods=["PATCH"])
+@require_session
+def update_phase(session, db):
+    """
+    Updates the current interview phase state.
+    ---
+    Input (JSON):
+        - phase (str): orientation, implementation, or verification
+    Output (200):
+        - message (str): Success message
+        - phase (str): The updated phase
+    Errors:
+        - 400: Missing phase
+    """
+    data = request.get_json()
+    phase = data.get("phase")
+    if not phase:
+        return jsonify({"error": "phase is required"}), 400
+
+    # Log as panel_focus event to track time spent in phase
+    write_event(
+        db,
+        session_id=session.session_id,
+        actor="user",
+        event_type="panel_focus",
+        content=phase,
+        metadata={"phase": phase},
+    )
+
+    db.commit()
+    return jsonify({"message": "Phase updated", "phase": phase}), 200
+
+
+@session_bp.route("/questions", methods=["GET"])
+def get_questions():
+    """
+    Returns a list of available coding questions and user status.
+    ---
+    Input (Query Params):
+        - username (str, optional): To fetch per-user session status
+    Output (200):
+        - questions (list): Array of question objects with status (pending/in progress/submitted).
+    """
+    username = request.args.get("username")
+    status = "pending"
+
+    if username:
+        db = next(get_db())
+        try:
+            session = (
+                db.query(Session)
+                .filter_by(username=username, project_name="q1")
+                .order_by(Session.started_at.desc())
+                .first()
+            )
+            if session:
+                if session.ended_at:
+                    status = "submitted"
+                else:
+                    status = "in progress"
+        finally:
+            db.close()
+
+    return jsonify([
+        {
+            "id": "q1",
+            "company": "MadData",
+            "title": "Shopping Cart Debugger",
+            "description": "A discount engine produces wrong totals when a coupon and a quantity tier are both active. Trace the logic across 3 files and fix the order of operations.",
+            "duration": "60 min",
+            "difficulty": "Medium",
+            "files": ["cart.py", "product.py", "discount.py"],
+            "status": status,
+        }
+    ]), 200
+
+
 
 @session_bp.route("/session/<session_id>/trace", methods=["GET"])
 def get_trace(session_id):
+    """
+    Retrieves the full event trace for a specific session (Admin tool).
+    ---
+    Input (Path):
+        - session_id (str): UUID of the session
+    Output (200):
+        - session_id (str): UUID
+        - events (list): Chronological list of all logged events
+    Errors:
+        - 404: Session not found
+    """
     db = next(get_db())
     try:
         session = get_session_or_404(db, session_id)

@@ -12,8 +12,10 @@ ai_bp = Blueprint("ai", __name__)
 DEFAULT_SYSTEM_PROMPT = (
     "You are an expert coding assistant helping a software engineer solve algorithmic "
     "programming challenges inside a technical interview environment. "
-    "Be concise and direct. When suggesting code, produce complete, working implementations. "
-    "Focus only on the problem at hand — do not add unsolicited explanations or caveats."
+    "Be concise and direct. Focus only on the problem at hand. "
+    "CRITICAL: When suggesting code changes, you MUST output the ENTIRE file completely "
+    "from top to bottom. Do NOT use placeholders like `...` or omit any unchanged code. "
+    "Your code block will be diffed against the original file, so missing lines will be interpreted as deletions."
 )
 
 PHASE_VALUES = {"orientation", "implementation", "verification"}
@@ -37,6 +39,22 @@ def _current_phase(db, session_id: str):
 @ai_bp.route("/ai/chat", methods=["POST"])
 @require_session
 def chat(session, db):
+    """
+    Sends a prompt to the AI assistant and records the interaction.
+    ---
+    Input (JSON):
+        - prompt (str): User's message text
+        - file_id (str, optional): ID of the active file for context
+        - history (list, optional): Previous messages in the thread
+        - context (str, optional): Additional text context (e.g. file contents)
+    Output (201):
+        - interaction_id (str): UUID of the interaction
+        - response (str): AI's response text
+        - has_code_changes (bool): Whether the response contains a code block
+    Errors:
+        - 400: Missing prompt
+        - 502: AI service failure
+    """
     data = request.get_json()
     prompt_text = data.get("prompt")
     file_id = data.get("file_id")

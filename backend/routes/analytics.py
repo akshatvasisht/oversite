@@ -1,4 +1,5 @@
 import json
+import logging
 from flask import Blueprint, jsonify, request
 from sqlalchemy import desc
 from db import get_db
@@ -6,11 +7,21 @@ from schema import Session, SessionScore, Event, AIInteraction, ChunkDecision
 from services.scoring import trigger_scoring, extract_behavioral_features, FEATURE_NAMES
 from routes.auth import require_role
 
+logger = logging.getLogger(__name__)
+
 analytics_bp = Blueprint("analytics", __name__)
 
 @analytics_bp.route("/analytics/overview", methods=["GET"])
 @require_role("admin")
 def get_overview():
+    """
+    Returns a high-level summary of all candidate sessions.
+    ---
+    Input (Query Params):
+        - completed_only (bool, optional): Filter by ended_at != None. Defaults to false.
+    Output (200):
+        - sessions (list): Array of session summary objects including status and overall labels.
+    """
     db = next(get_db())
     try:
         completed_only = request.args.get("completed_only", "false").lower() == "true"
@@ -18,13 +29,21 @@ def get_overview():
         query = db.query(Session).order_by(desc(Session.started_at))
         if completed_only:
             query = query.filter(Session.ended_at != None)
-            
-        sessions = query.all()
-        
+
+        all_sessions = query.all()
+
+        # Keep only the most recent session per (username, project_name)
+        seen = {}
+        for s in all_sessions:
+            key = (s.username, s.project_name)
+            if key not in seen:
+                seen[key] = s
+        sessions = list(seen.values())
+
         results = []
         for s in sessions:
             score = db.query(SessionScore).filter_by(session_id=s.session_id).first()
-            
+
             results.append({
                 "session_id": s.session_id,
                 "username": s.username,
@@ -44,6 +63,17 @@ def get_overview():
 @analytics_bp.route("/analytics/session/<session_id>", methods=["GET"])
 @require_role("admin")
 def get_session_analytics(session_id):
+    """
+    Returns detailed structural and prompt-quality scores for a specific session.
+    ---
+    Input (Path):
+        - session_id (str): UUID of the target session.
+    Output (200):
+        - combined scores (obj): Structural scores (c1), prompt quality (c2), review (c3), and LLM narrative.
+        - live_metrics (dict): Current calculated feature values.
+    Errors:
+        - 404: Session not found
+    """
     db = next(get_db())
     try:
         session = db.query(Session).filter_by(session_id=session_id).first()
@@ -75,13 +105,18 @@ def get_session_analytics(session_id):
             }
 
         # 2. Compute live metrics using the same feature extraction used in scoring
-        features_array = extract_behavioral_features(session_id, db)
-        live_metrics = {name: float(val) for name, val in zip(FEATURE_NAMES, features_array)}
+        try:
+            features_array = extract_behavioral_features(session_id, db)
+            live_metrics = {name: float(val) for name, val in zip(FEATURE_NAMES, features_array)}
+        except Exception as fe:
+            logger.warning(f"Feature extraction failed for {session_id}: {fe}")
+            live_metrics = {name: None for name in FEATURE_NAMES}
 
         return jsonify({
             **score_data,
             **live_metrics,
             "session_id": session_id,
+            "username": session.username,
             "status": "Submitted" if session.ended_at else "In Progress"
         }), 200
     finally:
@@ -91,6 +126,18 @@ def get_session_analytics(session_id):
 @analytics_bp.route("/analytics/session/<session_id>/score", methods=["POST"])
 @require_role("admin")
 def force_score_session(session_id):
+    """
+    Manually triggers the scoring pipeline for an active session.
+    ---
+    Input (Path):
+        - session_id (str): UUID of the session to score.
+    Output (200):
+        - message (str): Success message.
+        - score_id (str): UUID of the generated score record.
+    Errors:
+        - 404: Session not found
+        - 500: Scoring pipeline error
+    """
     db = next(get_db())
     try:
         session = db.query(Session).filter_by(session_id=session_id).first()

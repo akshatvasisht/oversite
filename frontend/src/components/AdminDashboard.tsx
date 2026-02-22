@@ -8,10 +8,10 @@ import { Badge } from './ui/badge';
 interface SessionRow {
     session_id: string;
     username: string;
-    overall_label: 'over_reliant' | 'balanced' | 'strategic' | null;
-    weighted_score: number | null;
-    ended_at: string | null;
-    status: 'completed' | 'in_progress';
+    label: 'over_reliant' | 'balanced' | 'strategic' | null;
+    score: number | null;
+    date_submitted: string | null;
+    status: 'Submitted' | 'In Progress';
 }
 
 const LABEL_VARIANT: Record<string, 'default' | 'warning' | 'success' | 'secondary'> = {
@@ -75,28 +75,28 @@ export default function AdminDashboard() {
                         </thead>
                         <tbody>
                             {sessions.map((row) => (
-                                <tr key={row.session_id} className={row.status === 'completed' ? 'row-clickable' : 'row-muted'}>
+                                <tr key={row.session_id} className={row.status === 'Submitted' ? 'row-clickable' : 'row-muted'}>
                                     <td>{row.username}</td>
                                     <td>
-                                        <Badge variant={row.status === 'completed' ? 'secondary' : 'outline'}>
-                                            {row.status === 'completed' ? 'Submitted' : 'In Progress'}
+                                        <Badge variant={row.status === 'Submitted' ? 'secondary' : 'outline'}>
+                                            {row.status}
                                         </Badge>
                                     </td>
                                     <td>
-                                        {row.overall_label
-                                            ? <Badge variant={LABEL_VARIANT[row.overall_label] ?? 'secondary'}>{row.overall_label.replace('_', ' ')}</Badge>
+                                        {row.label
+                                            ? <Badge variant={LABEL_VARIANT[row.label] ?? 'secondary'}>{row.label.replace('_', ' ')}</Badge>
                                             : <span className="muted">—</span>
                                         }
                                     </td>
                                     <td>
-                                        {row.weighted_score != null
-                                            ? <strong>{row.weighted_score.toFixed(1)}</strong>
+                                        {row.score != null
+                                            ? <strong>{row.score.toFixed(1)}</strong>
                                             : <span className="muted">—</span>
                                         }
                                     </td>
-                                    <td className="muted">{fmt(row.ended_at)}</td>
+                                    <td className="muted">{fmt(row.date_submitted)}</td>
                                     <td>
-                                        {row.status === 'completed' && (
+                                        {row.status === 'Submitted' && (
                                             <Button
                                                 size="sm"
                                                 variant="outline"

@@ -47,6 +47,34 @@ code, pre, .mono {
   font-family: 'JetBrains Mono', Consolas, 'Courier New', monospace;
 }
 
+/* ── Scrollbars ─────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* ── Utility ───────────────────────────────────── */
 .screen {
   min-height: 100vh;
@@ -266,10 +294,24 @@ code, pre, .mono {
 
 .ide-shell {
   flex: 1;
-  display: grid;
-  grid-template-columns: 300px 1fr 320px;
+  display: flex;
+  flex-direction: row;
   overflow: hidden;
+  min-height: 0;
   border-top: none;
+}
+
+.resize-handle {
+  width: 4px;
+  background: var(--border);
+  cursor: col-resize;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.resize-handle:hover,
+.resize-handle:active {
+  background: var(--primary);
 }
 
 .problem-pane,
@@ -278,19 +320,16 @@ code, pre, .mono {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-right: 1px solid var(--border);
+  min-height: 0;
 }
 
-.assistant-pane {
-  border-right: none;
+.workspace-pane {
+  flex: 1;
+  min-width: 0;
 }
 
 .problem-pane {
   background: var(--bg-surface);
-}
-
-.workspace-pane {
-  background: var(--bg-base);
 }
 
 .assistant-pane {
@@ -629,7 +668,60 @@ code, pre, .mono {
   overflow-x: auto;
   white-space: pre;
   color: #c9d1d9;
-  margin: 4px 0;
+  margin: 6px 0;
+}
+
+.chat-inline-code {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-size: 11px;
+  color: #c9d1d9;
+}
+
+.chat-markdown {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.chat-markdown p {
+  margin: 0 0 6px;
+}
+
+.chat-markdown p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-markdown ul,
+.chat-markdown ol {
+  margin: 4px 0 6px;
+  padding-left: 18px;
+}
+
+.chat-markdown li {
+  margin-bottom: 2px;
+}
+
+.chat-markdown strong {
+  font-weight: 600;
+  color: #e5e5e5;
+}
+
+.chat-markdown em {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.chat-markdown h1,
+.chat-markdown h2,
+.chat-markdown h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 8px 0 4px;
+  color: var(--text-primary);
 }
 
 .chat-ts {

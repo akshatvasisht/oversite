@@ -13,13 +13,14 @@ interface SessionDetail {
     prompt_quality_scores: Record<string, number> | null;
     review_scores: Record<string, number> | null;
     llm_narrative: string | null;
-    chunk_acceptance_rate: number | null;
-    verification_frequency: number | null;
-    reprompt_ratio: number | null;
-    time_by_panel_editor_pct: number | null;
-    time_by_panel_chat_pct: number | null;
-    orientation_duration_s: number | null;
-    iteration_depth: number | null;
+    // Feature names match backend FEATURE_NAMES
+    rate_chunk_acceptance: number | null;
+    freq_verification: number | null;
+    ratio_reprompt: number | null;
+    pct_time_editor: number | null;
+    pct_time_chat: number | null;
+    duration_orientation_s: number | null;
+    depth_iteration: number | null;
 }
 
 const LABEL_VARIANT: Record<string, 'default' | 'warning' | 'success' | 'secondary'> = {
@@ -34,15 +35,18 @@ const LABEL_COLOR: Record<string, string> = {
     over_reliant: '#fbbf24',
 };
 
-function ScoreBar({ value }: { value: number }) {
-    const pct = ((value - 1) / 4) * 100;
-    const color = value >= 4 ? '#4ade80' : value >= 3 ? '#60a5fa' : value >= 2 ? '#fbbf24' : '#f87171';
+function ScoreBar({ value }: { value: unknown }) {
+    const num = typeof value === 'number' && isFinite(value) ? value : null;
+    const pct = num !== null ? ((num - 1) / 4) * 100 : 0;
+    const color = num === null ? '#555' : num >= 4 ? '#4ade80' : num >= 3 ? '#60a5fa' : num >= 2 ? '#fbbf24' : '#f87171';
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ flex: 1, height: 5, background: '#2a2a2a', borderRadius: 3, overflow: 'hidden' }}>
                 <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 3 }} />
             </div>
-            <span style={{ fontSize: 12, fontWeight: 600, minWidth: 28, color, fontFamily: "'JetBrains Mono', monospace" }}>{value.toFixed(1)}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, minWidth: 28, color, fontFamily: "'JetBrains Mono', monospace" }}>
+                {num !== null ? num.toFixed(1) : '—'}
+            </span>
         </div>
     );
 }
@@ -64,7 +68,9 @@ function RubricBreakdown({ structural, promptQuality, review }: {
                 <div key={label} className="rubric-section">
                     <h4 className="rubric-section-title">{label}</h4>
                     {scores
-                        ? Object.entries(scores).map(([key, val]) => (
+                        ? Object.entries(scores)
+                            .filter(([, val]) => typeof val === 'number' || val === null)
+                            .map(([key, val]) => (
                             <div key={key} className="rubric-row">
                                 <span className="rubric-label">{key.replace(/_/g, ' ')}</span>
                                 <ScoreBar value={val} />
@@ -183,13 +189,13 @@ export default function ScoreDetailPage() {
 
                     <div className="metrics-grid">
                         {[
-                            ['Acceptance Rate', data.chunk_acceptance_rate, '%', 100],
-                            ['Verification Frequency', data.verification_frequency, 'x', null],
-                            ['Reprompt Ratio', data.reprompt_ratio, '', null],
-                            ['Time in Editor', data.time_by_panel_editor_pct, '%', 100],
-                            ['Time in Chat', data.time_by_panel_chat_pct, '%', 100],
-                            ['Orientation Time', data.orientation_duration_s, 's', null],
-                            ['Iteration Depth', data.iteration_depth, '', null],
+                            ['Acceptance Rate', data.rate_chunk_acceptance, '%'],
+                            ['Verification Freq', data.freq_verification, 'x'],
+                            ['Reprompt Ratio', data.ratio_reprompt, ''],
+                            ['Time in Editor', data.pct_time_editor, '%'],
+                            ['Time in Chat', data.pct_time_chat, '%'],
+                            ['Orientation Time', data.duration_orientation_s, 's'],
+                            ['Iteration Depth', data.depth_iteration, ''],
                         ].map(([label, val]) => (
                             <div key={String(label)} className="metric-item">
                                 <span className="metric-label">{label}</span>

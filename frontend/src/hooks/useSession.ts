@@ -31,15 +31,16 @@ interface UseSessionResult {
         content: string,
         trigger: 'debounce' | 'file_switch',
     ) => Promise<void>;
+    initialElapsedSeconds: number;
 }
 
 // ── Problem Q1: Shopping Cart Debugger ────────────────────────────────────
 // Starter files pre-loaded for the candidate. discount.py contains the bug.
 
 const Q1_FILES: { filename: string; content: string }[] = [
-  {
-    filename: 'product.py',
-    content: `from dataclasses import dataclass
+    {
+        filename: 'product.py',
+        content: `from dataclasses import dataclass
 
 
 @dataclass
@@ -58,10 +59,10 @@ class Product:
     def __repr__(self) -> str:
         return f"Product(sku={self.sku!r}, name={self.name!r}, price={self.price:.2f})"
 `,
-  },
-  {
-    filename: 'cart.py',
-    content: `from __future__ import annotations
+    },
+    {
+        filename: 'cart.py',
+        content: `from __future__ import annotations
 
 from product import Product
 from discount import DiscountEngine
@@ -133,10 +134,10 @@ class ShoppingCart:
     def __len__(self) -> int:
         return sum(item.quantity for item in self._items)
 `,
-  },
-  {
-    filename: 'discount.py',
-    content: `from __future__ import annotations
+    },
+    {
+        filename: 'discount.py',
+        content: `from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
@@ -195,10 +196,10 @@ class DiscountEngine:
 
         return max(round(subtotal, 2), 0.0)
 `,
-  },
-  {
-    filename: 'tests/test_cart.py',
-    content: `"""
+    },
+    {
+        filename: 'tests/test_cart.py',
+        content: `"""
 Shopping Cart -- test suite
 Run with:  pytest tests/test_cart.py -v
 """
@@ -344,7 +345,7 @@ class TestCombinedDiscounts:
         cart.apply_coupon("SAVE20")
         assert cart.total() == pytest.approx(75.20)
 `,
-  },
+    },
 ];
 
 const fallbackSessionId = (): string => `local-${Date.now().toString(36)}`;
@@ -382,6 +383,8 @@ export const useSession = ({
         filesRef.current = files;
     }, [files]);
 
+    const [initialElapsedSeconds, setInitialElapsedSeconds] = useState(0);
+
     useEffect(() => {
         let isCancelled = false;
 
@@ -390,12 +393,23 @@ export const useSession = ({
             setError(null);
 
             let resolvedSessionId: string;
+            let fetchedFiles: SessionFile[] | null = null;
             try {
                 const response = await api.post('/session/start', {
                     username,
                     project_name: routeSessionId,
                 });
                 resolvedSessionId = response.data?.session_id ?? fallbackSessionId();
+                if (response.data?.rehydrated && response.data?.files) {
+                    fetchedFiles = response.data.files;
+                    if (response.data?.started_at) {
+                        const raw: string = response.data.started_at;
+                        // Ensure the string is treated as UTC even if the backend strips timezone info
+                        const utcStr = raw.endsWith('Z') || raw.includes('+') ? raw : raw + 'Z';
+                        const elapsed = Math.max(0, Math.floor((Date.now() - new Date(utcStr).getTime()) / 1000));
+                        setInitialElapsedSeconds(elapsed);
+                    }
+                }
             } catch {
                 resolvedSessionId = fallbackSessionId();
                 if (!isCancelled) {
@@ -405,11 +419,28 @@ export const useSession = ({
 
             if (isCancelled) return;
 
-            const starterFiles = Q1_FILES.map((f) => createLocalFile(f.filename, f.content));
+            let starterFiles: SessionFile[];
+            if (fetchedFiles) {
+                // Merge rehydrated files with boilerplate
+                const boilerplate = Q1_FILES.map((f) => createLocalFile(f.filename, f.content));
+                const merged = [...fetchedFiles];
+
+                for (const b of boilerplate) {
+                    if (!merged.find(m => m.filename === b.filename)) {
+                        merged.push(b);
+                    }
+                }
+                starterFiles = merged;
+            } else {
+                starterFiles = Q1_FILES.map((f) => createLocalFile(f.filename, f.content));
+            }
+
             setSessionId(resolvedSessionId);
             setSessionIdInContext(resolvedSessionId);
             setFiles(starterFiles);
-            setActiveFileId(starterFiles[2].fileId); // open discount.py by default
+            // Default to discount.py if present, else first file
+            const initialActive = starterFiles.find(f => f.filename === 'discount.py') ?? starterFiles[0];
+            setActiveFileId(initialActive?.fileId ?? null);
             setLoading(false);
         };
 
@@ -532,5 +563,6 @@ export const useSession = ({
         createFile,
         updateActiveContent,
         saveEditorEvent,
+        initialElapsedSeconds,
     };
 };

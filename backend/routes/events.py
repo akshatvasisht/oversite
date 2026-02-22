@@ -1,4 +1,7 @@
+import os
 import uuid
+import tempfile
+import subprocess
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 from schema import File, EditorEvent
@@ -15,6 +18,16 @@ from services.diff import compute_edit_delta
 @events_bp.route("/events/editor", methods=["POST"])
 @require_session
 def editor_event(session, db):
+    """
+    Logs an incremental code edit event to the database.
+    ---
+    Input (JSON):
+        - file_id (str): Target file
+        - content (str): New full content (converted to delta on backend)
+    Output (201):
+        - event_id (str): UUID
+        - recorded_at (str): ISO timestamp
+    """
     data = request.get_json()
     file_id = data.get("file_id")
     content = data.get("content")
@@ -70,31 +83,93 @@ def editor_event(session, db):
 @events_bp.route("/events/execute", methods=["POST"])
 @require_session
 def execute_event(session, db):
+    """
+    Executes candidate code in a temporary sandbox environment.
+    ---
+    Input (JSON):
+        - entrypoint (str): File to run (e.g. 'main.py')
+        - files (list): Array of {filename, content} to write into sandbox
+    Output (200):
+        - stdout (str): Execution output
+        - stderr (str): Error output or engine errors
+        - exit_code (int): 0 for success
+    """
     data = request.get_json()
-    exit_code = data.get("exit_code")
-    output = data.get("output", "")
-    file_id = data.get("file_id")
+    entrypoint = data.get("entrypoint")
+    files = data.get("files", [])
 
-    if exit_code is None:
-        return jsonify({"error": "exit_code is required"}), 400
+    if not entrypoint or not files:
+        return jsonify({"error": "entrypoint and files are required"}), 400
 
     event = write_event(
         db,
         session_id=session.session_id,
         actor="user",
         event_type="execute",
-        content=output,
-        metadata={"exit_code": exit_code, "file_id": file_id},
+        content=entrypoint,
+        metadata={"entrypoint": entrypoint},
     )
-
     db.commit()
 
-    return jsonify({"event_id": event.event_id}), 201
+    stdout_str = ""
+    stderr_str = ""
+    exit_code = 1
+
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for f in files:
+                fname = f.get("filename")
+                content = f.get("content", "")
+                if fname:
+                    filepath = os.path.join(tmpdir, fname)
+                    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+                    with open(filepath, "w") as out:
+                        out.write(content)
+
+            is_test = os.path.basename(entrypoint).startswith("test_") or os.path.basename(entrypoint).endswith("_test.py")
+            if is_test:
+                cmd = ["python", "-m", "pytest", entrypoint, "-v"]
+            else:
+                target_file = os.path.join(tmpdir, entrypoint)
+                cmd = ["python", target_file]
+
+            result = subprocess.run(
+                cmd,
+                cwd=tmpdir,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            stdout_str = result.stdout
+            stderr_str = result.stderr
+            exit_code = result.returncode
+
+    except subprocess.TimeoutExpired:
+        stderr_str = "Execution timed out (10s limit)."
+    except Exception as e:
+        stderr_str = f"Execution engine error: {str(e)}"
+
+    return jsonify({
+        "status": "success",
+        "event_id": event.event_id,
+        "stdout": stdout_str,
+        "stderr": stderr_str,
+        "exit_code": exit_code
+    }), 200
 
 
 @events_bp.route("/events/panel", methods=["POST"])
 @require_session
 def panel_event(session, db):
+    """
+    Logs metadata about UI panel focus changes (e.g. switching from chat to editor).
+    ---
+    Input (JSON):
+        - panel (str): target panel name
+    Output (201):
+        - event_id (str): UUID
+    """
     data = request.get_json()
     panel = data.get("panel")
 

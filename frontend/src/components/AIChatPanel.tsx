@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import api from '../api';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
+import { useToast } from '../context/ToastContext';
 
 export interface Hunk {
     start_line: number;
@@ -45,31 +47,26 @@ function extractProposedCode(text: string): string | null {
     return match ? match[1].trim() : null;
 }
 
-/** Split message text into alternating prose / code-block segments */
-function parseSegments(text: string): { type: 'text' | 'code'; content: string }[] {
-    const parts = text.split(/(```[\w]*\n?[\s\S]*?```)/g);
-    return parts
-        .filter((p) => p.length > 0)
-        .map((p) => {
-            const codeMatch = /^```[\w]*\n?([\s\S]*?)```$/.exec(p);
-            if (codeMatch) return { type: 'code' as const, content: codeMatch[1] };
-            return { type: 'text' as const, content: p };
-        });
-}
 
 function MessageContent({ content, role }: { content: string; role: 'user' | 'ai' | 'system' }) {
     if (role !== 'ai') {
         return <pre className="chat-text">{content}</pre>;
     }
-    const segments = parseSegments(content);
     return (
-        <>
-            {segments.map((seg, i) =>
-                seg.type === 'code'
-                    ? <code key={i} className="chat-code-block">{seg.content}</code>
-                    : <pre key={i} className="chat-text">{seg.content}</pre>
-            )}
-        </>
+        <div className="chat-markdown">
+            <ReactMarkdown
+                components={{
+                    code({ className, children, ...props }) {
+                        const isBlock = !props.ref;
+                        return isBlock
+                            ? <code className="chat-code-block">{children}</code>
+                            : <code className="chat-inline-code" {...props}>{children}</code>;
+                    },
+                }}
+            >
+                {content}
+            </ReactMarkdown>
+        </div>
     );
 }
 
@@ -81,10 +78,12 @@ export default function AIChatPanel({
     onSuggestion,
     onResolvePending,
 }: AIChatPanelProps) {
+    const { showToast } = useToast();
     const [messages, setMessages] = useState<Message[]>([]);
     const [history, setHistory] = useState<HistoryEntry[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [retryPayload, setRetryPayload] = useState<{ text: string; history: HistoryEntry[] } | null>(null);
     const threadRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -99,19 +98,22 @@ export default function AIChatPanel({
         return id;
     };
 
-    const send = useCallback(async () => {
-        const text = input.trim();
+    const send = useCallback(async (retryText?: string, retryHistory?: HistoryEntry[]) => {
+        const text = retryText ?? input.trim();
         if (!text || loading || !sessionId) return;
 
-        setInput('');
+        if (!retryText) {
+            setInput('');
+            addMessage('user', text);
+        }
         setLoading(true);
-        addMessage('user', text);
+        setRetryPayload(null);
 
         if (pendingSuggestion) {
             onResolvePending();
         }
 
-        const outgoingHistory = [...history];
+        const outgoingHistory = retryHistory ?? [...history];
 
         try {
             const chatRes = await api.post('/ai/chat', {
@@ -155,12 +157,15 @@ export default function AIChatPanel({
                         };
                         onSuggestion({ suggestionId: suggestion_id, hunks, shownAt: shown_at });
                         addMessage('system', 'Suggestion ready — review the code above and apply as needed.');
+                        showToast('AI Suggestion ready!', 'info');
                     } catch {
+                        showToast('Failed to create suggestion', 'error');
                         // Suggestion creation failed silently; chat still works
                     }
                 }
             }
         } catch {
+            setRetryPayload({ text, history: outgoingHistory });
             addMessage('system', 'AI service unavailable. Please try again.');
         } finally {
             setLoading(false);
@@ -204,6 +209,14 @@ export default function AIChatPanel({
             {pendingSuggestion && (
                 <div className="chat-suggestion-banner">
                     Suggestion pending in editor — review the code block above.
+                </div>
+            )}
+
+            {retryPayload && (
+                <div style={{ padding: '0.5rem 1rem', background: 'var(--bg-muted)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'center' }}>
+                    <Button variant="secondary" size="sm" onClick={() => void send(retryPayload.text, retryPayload.history)}>
+                        Retry Connection
+                    </Button>
                 </div>
             )}
 

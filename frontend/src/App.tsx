@@ -1,9 +1,10 @@
-import { useState, type ReactElement } from 'react';
+import { useState, useEffect, useRef, type ReactElement } from 'react';
 import api from './api';
 import { BrowserRouter as Router, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
 import AIChatPanel, { type PendingSuggestion } from './components/AIChatPanel';
 import AdminDashboardPage from './components/AdminDashboard';
+import { ToastProvider, useToast } from './context/ToastContext';
 import FileExplorer from './components/FileExplorer';
 import MonacoEditorWrapper from './components/MonacoEditorWrapper';
 import ScoreDetailPage from './components/ScoreDetailPage';
@@ -14,6 +15,7 @@ import { Input } from './components/ui/input';
 import { useAuth } from './hooks/useAuth';
 import { useAutosave } from './hooks/useAutosave';
 import { useSession } from './hooks/useSession';
+import NetworkStatus from './components/NetworkStatus';
 import './App.css';
 
 const LoginPage = () => {
@@ -27,9 +29,11 @@ const LoginPage = () => {
 
   const signInAs = async (user: string): Promise<void> => {
     const normalized = user.trim().toLowerCase();
-    const isDemouser = normalized === 'testuser1' || normalized === 'candidate1';
-    const pwd = normalized === 'admin1' || normalized === 'admin' ? 'admin123' : (isDemouser ? 'password123' : 'password123');
-    const uName = normalized === 'admin' ? 'admin1' : (normalized === 'testuser1' ? 'candidate1' : normalized);
+    const pwd = normalized === 'admin1' || normalized === 'admin' ? 'admin123' : 'password123';
+    const uName = normalized === 'admin' ? 'admin1'
+      : normalized === 'testuser1' ? 'candidate1'
+      : normalized === 'testuser2' ? 'candidate2'
+      : normalized;
 
     try {
       const resp = await api.post('/auth/login', { username: uName, password: pwd });
@@ -63,13 +67,13 @@ const LoginPage = () => {
               id="username"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
-              placeholder="testuser1 or admin"
+              placeholder="candidate1 or admin1"
             />
             <Button type="submit">Sign In</Button>
           </form>
           <div className="demo-divider">quick access</div>
           <div className="demo-row">
-            <Button type="button" variant="secondary" onClick={() => signInAs('testuser1')}>
+            <Button type="button" variant="secondary" onClick={() => signInAs('candidate1')}>
               Demo Candidate
             </Button>
             <Button type="button" variant="secondary" onClick={() => signInAs('admin')}>
@@ -83,22 +87,20 @@ const LoginPage = () => {
 };
 
 const QuestionsPage = () => {
-  const { role, logout } = useAuth();
+  const { role, userId, logout } = useAuth();
   const navigate = useNavigate();
-  if (role !== 'candidate') return <Navigate to="/login" replace />;
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const questions = [
-    {
-      id: 'q1',
-      company: 'MadData',
-      title: 'Shopping Cart Debugger',
-      description: 'A discount engine produces wrong totals when a coupon and a quantity tier are both active. Trace the logic across 3 files and fix the order of operations.',
-      duration: '60 min',
-      difficulty: 'Medium',
-      files: ['cart.py', 'product.py', 'discount.py'],
-      status: 'pending',
-    },
-  ];
+  useEffect(() => {
+    if (role !== 'candidate') return;
+    api.get(`/questions?username=${userId}`)
+      .then(res => setQuestions(res.data))
+      .catch(err => console.error('Failed to fetch questions', err))
+      .finally(() => setLoading(false));
+  }, [role, userId]);
+
+  if (role !== 'candidate') return <Navigate to="/login" replace />;
 
   const statusVariant = (status: string): 'outline' | 'secondary' | 'warning' => {
     if (status === 'submitted') return 'secondary';
@@ -122,6 +124,9 @@ const QuestionsPage = () => {
         <Button type="button" variant="outline" onClick={logout}>Logout</Button>
       </div>
       <p className="muted" style={{ marginBottom: 20, fontSize: 14 }}>Select an assignment to open the coding workspace.</p>
+
+      {loading && <p className="muted">Loading assessments...</p>}
+
       <div className="question-grid">
         {questions.map((question) => (
           <div key={question.id} className={`question-card ${question.status === 'submitted' ? 'done' : ''}`}>
@@ -168,6 +173,42 @@ const SessionPage = () => {
   const [pendingSuggestion, setPendingSuggestion] = useState<PendingSuggestion | null>(null);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [activePhase, setActivePhase] = useState<'orientation' | 'implementation' | 'verification'>('orientation');
+  const [leftWidth, setLeftWidth] = useState(280);
+  const [rightWidth, setRightWidth] = useState(320);
+  const dragging = useRef<{ side: 'left' | 'right'; startX: number; startWidth: number } | null>(null);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!dragging.current) return;
+      const dx = e.clientX - dragging.current.startX;
+      if (dragging.current.side === 'left') {
+        setLeftWidth(Math.max(180, Math.min(480, dragging.current.startWidth + dx)));
+      } else {
+        setRightWidth(Math.max(200, Math.min(560, dragging.current.startWidth - dx)));
+      }
+    };
+    const onUp = () => {
+      dragging.current = null;
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+  }, []);
+
+  const startDrag = (side: 'left' | 'right', e: React.MouseEvent) => {
+    dragging.current = { side, startX: e.clientX, startWidth: side === 'left' ? leftWidth : rightWidth };
+    e.preventDefault();
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+  };
+
   const { userId, setSessionId } = useAuth();
   const {
     loading,
@@ -181,6 +222,7 @@ const SessionPage = () => {
     createFile,
     updateActiveContent,
     saveEditorEvent,
+    initialElapsedSeconds,
   } = useSession({
     routeSessionId: id ?? 'test',
     username: userId ?? 'candidate',
@@ -193,21 +235,61 @@ const SessionPage = () => {
     delayMs: 2000,
   });
 
+  const { showToast } = useToast();
+
   const sendPanelEvent = (panel: string): void => {
     if (!sessionId) return;
     void api.post('/events/panel', { panel });
   };
 
-  const runCode = async (): Promise<void> => {
-    const name = activeFile?.filename ?? 'main.py';
-    const cmd = `python ${name}`;
-    setTerminalLines((prev) => [...prev, `> ${cmd}`]);
+  const execute = async (entrypoint: string): Promise<void> => {
+    setTerminalLines((prev) => [...prev, `> python ${entrypoint}`]);
     try {
-      await api.post('/events/execute', { command: cmd, exit_code: 0, output: 'Execution finished.' });
-      setTerminalLines((prev) => [...prev, 'Execution finished.']);
+      const execRes = await api.post('/events/execute', { entrypoint, files });
+      const { stdout, stderr, exit_code } = execRes.data as { stdout: string; stderr: string; exit_code: number };
+
+      if (stdout) setTerminalLines((prev) => [...prev, ...stdout.split('\n').filter(l => l.trim() !== '')]);
+      if (stderr) setTerminalLines((prev) => [...prev, ...stderr.split('\n').filter(l => l.trim() !== '')]);
+      setTerminalLines((prev) => [...prev, `Process exited with code ${exit_code}`]);
+
+      if (exit_code === 0) {
+        showToast('Ran successfully ✓', 'success');
+      } else {
+        showToast('Execution failed', 'error');
+      }
     } catch {
-      setTerminalLines((prev) => [...prev, 'Execution finished.']);
+      setTerminalLines((prev) => [...prev, 'System: Execution engine unavailable.']);
+      showToast('Engine unavailable', 'error');
     }
+  };
+
+  const runCode = (): Promise<void> => execute(activeFile?.filename ?? 'main.py');
+  const runTests = (): Promise<void> => execute('tests/test_cart.py');
+
+  useEffect(() => {
+    setElapsedSeconds(initialElapsedSeconds);
+  }, [initialElapsedSeconds]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setElapsedSeconds(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handlePhaseChange = async (phase: 'orientation' | 'implementation' | 'verification') => {
+    setActivePhase(phase);
+    try {
+      await api.patch('/session/phase', { phase });
+    } catch (err) {
+      console.error('Failed to update phase', err);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   const confirmSubmit = async (): Promise<void> => {
@@ -215,8 +297,9 @@ const SessionPage = () => {
     setSubmitting(true);
     try {
       await api.post('/session/end', { final_phase: 'verification' });
+      showToast('Submission Successful', 'success');
     } catch {
-      // best-effort — navigate regardless
+      showToast('Failed to submit session', 'error');
     } finally {
       setSubmitting(false);
       setShowSubmitModal(false);
@@ -260,7 +343,30 @@ const SessionPage = () => {
           <span className="session-topbar-brand">MadData</span>
           <span className="session-topbar-sep">›</span>
           <span className="session-topbar-title">Session {id}</span>
+
+          <div className="phase-navigation">
+            <button
+              className={`phase-btn ${activePhase === 'orientation' ? 'active' : ''}`}
+              onClick={() => handlePhaseChange('orientation')}
+            >
+              1. Orientation
+            </button>
+            <button
+              className={`phase-btn ${activePhase === 'implementation' ? 'active' : ''}`}
+              onClick={() => handlePhaseChange('implementation')}
+            >
+              2. Implementation
+            </button>
+            <button
+              className={`phase-btn ${activePhase === 'verification' ? 'active' : ''}`}
+              onClick={() => handlePhaseChange('verification')}
+            >
+              3. Verification
+            </button>
+          </div>
+
           <div className="session-topbar-actions">
+            <div className="session-timer">{formatTime(elapsedSeconds)}</div>
             <Badge variant="secondary" className="status-pill">
               {autosaveLabel}
             </Badge>
@@ -270,6 +376,13 @@ const SessionPage = () => {
               onClick={(e) => { e.stopPropagation(); void runCode(); }}
             >
               ▶ Run
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); void runTests(); }}
+            >
+              ✓ Test
             </Button>
             <Button
               size="sm"
@@ -282,7 +395,7 @@ const SessionPage = () => {
 
         {/* IDE panels */}
         <div className="ide-shell">
-          <section className="problem-pane" onClick={() => sendPanelEvent('orientation')}>
+          <section className="problem-pane" style={{ width: leftWidth, minWidth: leftWidth }} onClick={() => sendPanelEvent('orientation')}>
             <div className="pane-title">Problem</div>
             <div className="pane-body">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -331,6 +444,8 @@ const SessionPage = () => {
             </div>
           </section>
 
+          <div className="resize-handle" onMouseDown={(e) => startDrag('left', e)} />
+
           <section className="workspace-pane" onClick={() => sendPanelEvent('editor')}>
             <div className="editor-toolbar">
               <span>Editing&nbsp;<strong>{activeFile?.filename ?? 'No file selected'}</strong></span>
@@ -338,7 +453,7 @@ const SessionPage = () => {
             </div>
             <div className="workspace-top">
               <FileExplorer
-                files={files}
+                files={files.filter(f => !f.filename.startsWith('tests/'))}
                 activeFileId={activeFileId}
                 onSelectFile={selectFile}
                 onCreateFile={createFile}
@@ -348,6 +463,9 @@ const SessionPage = () => {
                 content={activeContent}
                 language={activeFile?.language ?? 'python'}
                 onChange={(value) => updateActiveContent(value ?? '')}
+                pendingSuggestion={pendingSuggestion}
+                onResolvePending={() => setPendingSuggestion(null)}
+                sessionId={sessionId}
               />
             </div>
             <div className="terminal-pane">
@@ -360,7 +478,9 @@ const SessionPage = () => {
             </div>
           </section>
 
-          <section className="assistant-pane" onClick={() => sendPanelEvent('chat')}>
+          <div className="resize-handle" onMouseDown={(e) => startDrag('right', e)} />
+
+          <section className="assistant-pane" style={{ width: rightWidth, minWidth: rightWidth }} onClick={() => sendPanelEvent('chat')}>
             <div className="pane-title">AI Assistant</div>
             <AIChatPanel
               sessionId={sessionId}
@@ -414,9 +534,12 @@ const AppRoutes = () => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
+      <ToastProvider>
+        <NetworkStatus />
+        <Router>
+          <AppRoutes />
+        </Router>
+      </ToastProvider>
     </AuthProvider>
   );
 }

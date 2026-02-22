@@ -30,6 +30,17 @@ class Event(Base):
     content = Column(Text)
     metadata_ = Column('metadata', Text)
 
+    def to_dict(self):
+        return {
+            'event_id': self.event_id,
+            'session_id': self.session_id,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'actor': self.actor,
+            'event_type': self.event_type,
+            'content': self.content,
+            'metadata': self.metadata_,
+        }
+
 
 class AIInteraction(Base):
     __tablename__ = 'ai_interactions'
@@ -42,6 +53,16 @@ class AIInteraction(Base):
     prompt_tokens = Column(Integer)
     shown_at = Column(DateTime)
     phase = Column(String)
+
+    def to_dict(self):
+        return {
+            'interaction_id': self.interaction_id,
+            'session_id': self.session_id,
+            'prompt': self.prompt,
+            'response': self.response,
+            'phase': self.phase,
+            'shown_at': self.shown_at.isoformat() if self.shown_at else None,
+        }
 
 
 class AISuggestion(Base):
@@ -73,6 +94,18 @@ class ChunkDecision(Base):
     chunk_start_line = Column(Integer)
     char_count_proposed = Column(Integer)
     time_on_chunk_ms = Column(Integer)
+
+    def to_dict(self):
+        return {
+            'decision_id': self.decision_id,
+            'session_id': self.session_id,
+            'decision': self.decision,
+            'original_code': self.original_code,
+            'proposed_code': self.proposed_code,
+            'final_code': self.final_code,
+            'time_on_chunk_ms': self.time_on_chunk_ms,
+            'chunk_start_line': self.chunk_start_line,
+        }
 
 
 class EditorEvent(Base):
