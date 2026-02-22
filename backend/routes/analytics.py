@@ -4,10 +4,12 @@ from sqlalchemy import desc
 from db import get_db
 from models import Session, SessionScore, Event, AIInteraction, ChunkDecision
 from scoring import trigger_scoring, extract_c1_features, FEATURE_NAMES
+from routes.auth import require_role
 
 analytics_bp = Blueprint("analytics", __name__)
 
 @analytics_bp.route("/analytics/overview", methods=["GET"])
+@require_role("admin")
 def get_overview():
     db = next(get_db())
     try:
@@ -40,6 +42,7 @@ def get_overview():
 
 
 @analytics_bp.route("/analytics/session/<session_id>", methods=["GET"])
+@require_role("admin")
 def get_session_analytics(session_id):
     db = next(get_db())
     try:
@@ -86,6 +89,7 @@ def get_session_analytics(session_id):
 
 
 @analytics_bp.route("/analytics/session/<session_id>/score", methods=["POST"])
+@require_role("admin")
 def force_score_session(session_id):
     db = next(get_db())
     try:
