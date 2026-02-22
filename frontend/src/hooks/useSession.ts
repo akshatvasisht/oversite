@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import api from '../api';
 
 export interface SessionFile {
@@ -26,6 +26,11 @@ interface UseSessionResult {
     selectFile: (fileId: string) => Promise<void>;
     createFile: (filename: string) => Promise<void>;
     updateActiveContent: (content: string) => void;
+    saveEditorEvent: (
+        fileId: string,
+        content: string,
+        trigger: 'debounce' | 'file_switch',
+    ) => Promise<void>;
 }
 
 const starterContent = `def solve():
@@ -63,6 +68,12 @@ export const useSession = ({
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [files, setFiles] = useState<SessionFile[]>([]);
     const [activeFileId, setActiveFileId] = useState<string | null>(null);
+    const filesRef = useRef<SessionFile[]>([]);
+    const lastSavedContentRef = useRef<Record<string, string>>({});
+
+    useEffect(() => {
+        filesRef.current = files;
+    }, [files]);
 
     useEffect(() => {
         let isCancelled = false;
@@ -110,7 +121,7 @@ export const useSession = ({
     const activeContent = activeFile?.content ?? '';
 
     const persistFileIfNeeded = useCallback(async (targetFileId: string): Promise<string> => {
-        const file = files.find((entry) => entry.fileId === targetFileId);
+        const file = filesRef.current.find((entry) => entry.fileId === targetFileId);
         if (!file || file.persisted) return targetFileId;
 
         try {
@@ -134,12 +145,56 @@ export const useSession = ({
             // Work in local mode while endpoint is unavailable.
             return targetFileId;
         }
-    }, [files]);
+    }, []);
+
+    const saveEditorEvent = useCallback(async (
+        fileId: string,
+        content: string,
+        trigger: 'debounce' | 'file_switch',
+    ): Promise<void> => {
+        if (!sessionId) return;
+
+        const lastSaved = lastSavedContentRef.current[fileId];
+        if (lastSaved === content) {
+            return;
+        }
+
+        const resolvedFileId = await persistFileIfNeeded(fileId);
+        if (lastSavedContentRef.current[resolvedFileId] === content) {
+            return;
+        }
+
+        try {
+            await api.post('/events/editor', {
+                file_id: resolvedFileId,
+                content,
+                trigger,
+                suggestion_id: null,
+                cursor_line: 1,
+                cursor_col: 1,
+            });
+            lastSavedContentRef.current = {
+                ...lastSavedContentRef.current,
+                [fileId]: content,
+                [resolvedFileId]: content,
+            };
+        } catch {
+            // Keep local editing available while backend endpoint is unavailable.
+        }
+    }, [persistFileIfNeeded, sessionId]);
 
     const selectFile = useCallback(async (fileId: string): Promise<void> => {
+        const previousFileId = activeFileId;
+        if (previousFileId && previousFileId !== fileId) {
+            const previousFile = filesRef.current.find((file) => file.fileId === previousFileId);
+            if (previousFile) {
+                await saveEditorEvent(previousFile.fileId, previousFile.content, 'file_switch');
+            }
+        }
+
         const resolvedFileId = await persistFileIfNeeded(fileId);
         setActiveFileId(resolvedFileId);
-    }, [persistFileIfNeeded]);
+    }, [activeFileId, persistFileIfNeeded, saveEditorEvent]);
 
     const createFile = useCallback(async (filename: string): Promise<void> => {
         if (files.some((file) => file.filename === filename)) {
@@ -169,5 +224,6 @@ export const useSession = ({
         selectFile,
         createFile,
         updateActiveContent,
+        saveEditorEvent,
     };
 };

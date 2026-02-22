@@ -10,20 +10,23 @@ interface MonacoEditorWrapperProps {
 }
 
 const MonacoEditorWrapper: React.FC<MonacoEditorWrapperProps> = ({
+    fileId,
     content,
     language = 'python',
     onChange,
     onMount
 }) => {
     return (
-        <div style={{ height: '500px', width: '800px', border: '1px solid #ccc' }}>
+        <div className="editor-shell">
             <Editor
+                path={fileId}
                 height="100%"
-                defaultLanguage={language}
+                language={language}
                 value={content}
                 onChange={onChange}
                 onMount={onMount}
                 options={{
+                    lineNumbers: 'on',
                     minimap: { enabled: false }
                 }}
             />
