@@ -250,7 +250,7 @@ def trigger_scoring(session_id, db):
         
         # Store only numeric/scalar fields — strip features array and booleans
         c1_display = {"score": c1.get("score", 0), "label": c1.get("label", "")}
-        c2_display = {"score": c2.get("score", 0), "per_prompt_avg": round(sum(c2.get("per_prompt", [0])) / max(len(c2.get("per_prompt", [1])), 1), 2)}
+        c2_display = {"score": c2.get("score", 0)}
         c3_display = {"score": c3.get("score", 0)}
 
         # Prepare scores serialization
