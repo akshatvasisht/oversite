@@ -189,7 +189,11 @@ const SessionPage = () => {
         setRightWidth(Math.max(200, Math.min(560, dragging.current.startWidth - dx)));
       }
     };
-    const onUp = () => { dragging.current = null; };
+    const onUp = () => {
+      dragging.current = null;
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
     return () => {
@@ -201,6 +205,8 @@ const SessionPage = () => {
   const startDrag = (side: 'left' | 'right', e: React.MouseEvent) => {
     dragging.current = { side, startX: e.clientX, startWidth: side === 'left' ? leftWidth : rightWidth };
     e.preventDefault();
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
   };
 
   const { userId, setSessionId } = useAuth();

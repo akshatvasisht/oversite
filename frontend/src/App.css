@@ -47,6 +47,34 @@ code, pre, .mono {
   font-family: 'JetBrains Mono', Consolas, 'Courier New', monospace;
 }
 
+/* ── Scrollbars ─────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* ── Utility ───────────────────────────────────── */
 .screen {
   min-height: 100vh;
@@ -292,6 +320,7 @@ code, pre, .mono {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0;
 }
 
 .workspace-pane {
