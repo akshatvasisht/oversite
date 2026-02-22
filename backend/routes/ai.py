@@ -12,8 +12,10 @@ ai_bp = Blueprint("ai", __name__)
 DEFAULT_SYSTEM_PROMPT = (
     "You are an expert coding assistant helping a software engineer solve algorithmic "
     "programming challenges inside a technical interview environment. "
-    "Be concise and direct. When suggesting code, produce complete, working implementations. "
-    "Focus only on the problem at hand — do not add unsolicited explanations or caveats."
+    "Be concise and direct. Focus only on the problem at hand. "
+    "CRITICAL: When suggesting code changes, you MUST output the ENTIRE file completely "
+    "from top to bottom. Do NOT use placeholders like `...` or omit any unchanged code. "
+    "Your code block will be diffed against the original file, so missing lines will be interpreted as deletions."
 )
 
 PHASE_VALUES = {"orientation", "implementation", "verification"}

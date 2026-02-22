@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import * as monaco from 'monaco-editor';
 import api from '../api';
+import { useToast } from '../context/ToastContext';
 import type { PendingSuggestion, Hunk } from './AIChatPanel';
 
 interface DiffOverlayProps {
@@ -10,8 +11,6 @@ interface DiffOverlayProps {
     pendingSuggestion: PendingSuggestion | null;
     onResolvePending: () => void;
     onFileUpdate: (content: string) => void;
-    activeFileId: string | null;
-    sessionId: string | null;
 }
 
 class HunkContentWidget implements monaco.editor.IContentWidget {
@@ -42,12 +41,10 @@ export function DiffOverlay({
     pendingSuggestion,
     onResolvePending,
     onFileUpdate,
-    activeFileId,
-    sessionId
 }: DiffOverlayProps) {
+    const { showToast } = useToast();
     const [portals, setPortals] = useState<React.ReactPortal[]>([]);
     const decorationsCollection = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
-    const decorationIds = useRef<string[]>([]);
     const widgetsRef = useRef<Map<number, HunkContentWidget>>(new Map());
     const decisionsRef = useRef<Map<number, string>>(new Map()); // chunkIndex -> decision
 
@@ -100,7 +97,7 @@ export function DiffOverlay({
                     chunkIndex={index}
                     suggestionId={pendingSuggestion.suggestionId}
                     shownAt={pendingSuggestion.shownAt}
-                    onDecide={(decision, finalCode) => handleDecide(index, decision, finalCode, hunk, pendingSuggestion.suggestionId)}
+                    onDecide={(decision, finalCode) => handleDecide(index, decision, finalCode, pendingSuggestion.suggestionId)}
                 />,
                 widget.domNode
             );
@@ -108,16 +105,13 @@ export function DiffOverlay({
         });
 
         decorationsCollection.current = editor.createDecorationsCollection(newDecorations);
-        decorationIds.current = decorationsCollection.current.getRanges().map((_, i) => decorationsCollection.current!.getRanges()[i] ? "" : "");
-        // Wait, getRanges gives the current ranges. The IDs are internal.
-        // Actually createDecorationsCollection does not expose IDs directly, it manages them as a collection.
 
         setPortals(newPortals);
 
         return cleanup;
     }, [editor, monacoApi, pendingSuggestion]);
 
-    const handleDecide = async (chunkIndex: number, decision: 'accepted' | 'rejected' | 'modified', finalCode: string, hunk: Hunk, suggestionId: string) => {
+    const handleDecide = async (chunkIndex: number, decision: 'accepted' | 'rejected' | 'modified', finalCode: string, suggestionId: string) => {
         if (!editor || !monacoApi || !pendingSuggestion) return;
 
         // Send to backend
@@ -128,9 +122,10 @@ export function DiffOverlay({
                 final_code: finalCode,
                 time_on_chunk_ms: timeMs
             });
+            showToast(`Hunk ${decision}`, decision === 'accepted' ? 'success' : 'info');
         } catch (err) {
             console.error("Decision failed", err);
-            // We will proceed anyway for robustness during demo, or show a toast
+            showToast("Failed to save decision", "error");
         }
 
         // Apply text if accepted or modified
@@ -146,7 +141,7 @@ export function DiffOverlay({
                         [],
                         [{
                             range: new monacoApi.Range(currentRange.startLineNumber, 1, currentRange.endLineNumber, model.getLineMaxColumn(currentRange.endLineNumber)),
-                            text: finalCode + (finalCode.endsWith('\\n') ? '' : '\\n') // assure trailing newline
+                            text: finalCode + (finalCode.endsWith('\n') ? '' : '\n') // assure trailing newline
                         }],
                         () => null
                     );
@@ -200,7 +195,7 @@ interface HunkActionProps {
     onDecide: (decision: 'accepted' | 'rejected' | 'modified', finalCode: string) => Promise<void>;
 }
 
-function HunkAction({ hunk, chunkIndex, onDecide }: HunkActionProps) {
+function HunkAction({ hunk, onDecide }: HunkActionProps) {
     const [loading, setLoading] = useState(false);
     const [hidden, setHidden] = useState(false);
 
