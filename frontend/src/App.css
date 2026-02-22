@@ -266,10 +266,24 @@ code, pre, .mono {
 
 .ide-shell {
   flex: 1;
-  display: grid;
-  grid-template-columns: 300px 1fr 320px;
+  display: flex;
+  flex-direction: row;
   overflow: hidden;
+  min-height: 0;
   border-top: none;
+}
+
+.resize-handle {
+  width: 4px;
+  background: var(--border);
+  cursor: col-resize;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.resize-handle:hover,
+.resize-handle:active {
+  background: var(--primary);
 }
 
 .problem-pane,
@@ -278,19 +292,15 @@ code, pre, .mono {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-right: 1px solid var(--border);
 }
 
-.assistant-pane {
-  border-right: none;
+.workspace-pane {
+  flex: 1;
+  min-width: 0;
 }
 
 .problem-pane {
   background: var(--bg-surface);
-}
-
-.workspace-pane {
-  background: var(--bg-base);
 }
 
 .assistant-pane {

@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactElement } from 'react';
+import { useState, useEffect, useRef, type ReactElement } from 'react';
 import api from './api';
 import { BrowserRouter as Router, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
@@ -175,6 +175,33 @@ const SessionPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [activePhase, setActivePhase] = useState<'orientation' | 'implementation' | 'verification'>('orientation');
+  const [leftWidth, setLeftWidth] = useState(280);
+  const [rightWidth, setRightWidth] = useState(320);
+  const dragging = useRef<{ side: 'left' | 'right'; startX: number; startWidth: number } | null>(null);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!dragging.current) return;
+      const dx = e.clientX - dragging.current.startX;
+      if (dragging.current.side === 'left') {
+        setLeftWidth(Math.max(180, Math.min(480, dragging.current.startWidth + dx)));
+      } else {
+        setRightWidth(Math.max(200, Math.min(560, dragging.current.startWidth - dx)));
+      }
+    };
+    const onUp = () => { dragging.current = null; };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+  }, []);
+
+  const startDrag = (side: 'left' | 'right', e: React.MouseEvent) => {
+    dragging.current = { side, startX: e.clientX, startWidth: side === 'left' ? leftWidth : rightWidth };
+    e.preventDefault();
+  };
 
   const { userId, setSessionId } = useAuth();
   const {
@@ -362,7 +389,7 @@ const SessionPage = () => {
 
         {/* IDE panels */}
         <div className="ide-shell">
-          <section className="problem-pane" onClick={() => sendPanelEvent('orientation')}>
+          <section className="problem-pane" style={{ width: leftWidth, minWidth: leftWidth }} onClick={() => sendPanelEvent('orientation')}>
             <div className="pane-title">Problem</div>
             <div className="pane-body">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -411,6 +438,8 @@ const SessionPage = () => {
             </div>
           </section>
 
+          <div className="resize-handle" onMouseDown={(e) => startDrag('left', e)} />
+
           <section className="workspace-pane" onClick={() => sendPanelEvent('editor')}>
             <div className="editor-toolbar">
               <span>Editing&nbsp;<strong>{activeFile?.filename ?? 'No file selected'}</strong></span>
@@ -443,7 +472,9 @@ const SessionPage = () => {
             </div>
           </section>
 
-          <section className="assistant-pane" onClick={() => sendPanelEvent('chat')}>
+          <div className="resize-handle" onMouseDown={(e) => startDrag('right', e)} />
+
+          <section className="assistant-pane" style={{ width: rightWidth, minWidth: rightWidth }} onClick={() => sendPanelEvent('chat')}>
             <div className="pane-title">AI Assistant</div>
             <AIChatPanel
               sessionId={sessionId}
