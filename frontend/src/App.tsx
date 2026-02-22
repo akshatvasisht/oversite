@@ -416,7 +416,7 @@ const SessionPage = () => {
             </div>
             <div className="workspace-top">
               <FileExplorer
-                files={files}
+                files={files.filter(f => !f.filename.startsWith('tests/'))}
                 activeFileId={activeFileId}
                 onSelectFile={selectFile}
                 onCreateFile={createFile}
