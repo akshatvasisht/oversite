@@ -3,9 +3,9 @@ import json
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 from db import get_db
-from models import Session, Event
+from schema import Session, Event
 from utils import write_event
-from scoring import trigger_scoring
+from services.scoring import trigger_scoring
 
 session_bp = Blueprint("session", __name__)
 

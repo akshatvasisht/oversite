@@ -1,4 +1,4 @@
-from diff import compute_edit_delta, parse_hunks, Hunk
+from services.diff import compute_edit_delta, parse_hunks, Hunk
 
 
 # --- compute_edit_delta ---

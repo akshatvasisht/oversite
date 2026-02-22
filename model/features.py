@@ -128,7 +128,7 @@ def compute_c1_features(
 
     return np.array([feats[name] for name in FEATURE_NAMES], dtype=np.float32)
 
-def extract_c1_features(data: Any) -> np.ndarray:
+def extract_behavioral_features(data: Any) -> np.ndarray:
     """
     Polymorphic extractor for Component 1 features.
     Supports:
@@ -154,7 +154,7 @@ def extract_c1_features(data: Any) -> np.ndarray:
             session_start=data.get('session_start')
         )
 
-    logger.error(f"Unsupported data type passed to extract_c1_features: {type(data)}")
+    logger.error(f"Unsupported data type passed to extract_behavioral_features: {type(data)}")
     return np.zeros(len(FEATURE_NAMES))
 
 def create_train_val_split(df: pd.DataFrame, test_size: float = 0.2, random_state: int = 42) -> tuple:

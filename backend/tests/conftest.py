@@ -11,7 +11,7 @@ from routes.files import files_bp
 from routes.ai import ai_bp
 from routes.suggestions import suggestions_bp
 from routes.events import events_bp
-import models
+import schema
 
 @pytest.fixture(autouse=True)
 def _stub_gemini():
@@ -22,7 +22,7 @@ def _stub_gemini():
     mock_client.judge_call.return_value = "Candidate shows balanced reliance on AI tools."
     
     with patch("routes.ai.GeminiClient", return_value=mock_client), \
-         patch("scoring.GeminiClient", return_value=mock_client):
+         patch("services.scoring.GeminiClient", return_value=mock_client):
         yield mock_client
 
 @pytest.fixture

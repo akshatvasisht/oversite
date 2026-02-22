@@ -13,7 +13,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import config
 from loader import load_cups
 from labels import apply_proxy_labels
-from features import extract_c1_features, create_train_val_split, FEATURE_NAMES
+from features import extract_behavioral_features, create_train_val_split, FEATURE_NAMES
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -47,9 +47,9 @@ def extract_features_and_labels(df: pd.DataFrame):
     logger.info(f"Extracting features for {len(valid_df)} sessions...")
     
     for _, row in valid_df.iterrows():
-        # extract_c1_features expects a dataframe
+        # extract_behavioral_features expects a dataframe
         row_df = pd.DataFrame([row])
-        feats = extract_c1_features(row_df)
+        feats = extract_behavioral_features(row_df)
         X_list.append(feats)
         y_list.append(LABEL_MAP[row['proxy_label']])
         
@@ -118,7 +118,7 @@ def train_component1():
     models_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models")
     os.makedirs(models_dir, exist_ok=True)
     
-    model_path = os.path.join(models_dir, 'component1_xgboost.joblib')
+    model_path = os.path.join(models_dir, 'behavioral_classifier.joblib')
     importances_path = os.path.join(models_dir, 'c1_importances.json')
     
     joblib.dump(model, model_path)

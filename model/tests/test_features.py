@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from features import extract_c1_features, create_train_val_split, FEATURE_NAMES
+from features import extract_behavioral_features, create_train_val_split, FEATURE_NAMES
 
 def test_c1_feature_vector_shape():
     """Verify the extracted feature vector has exactly 15 dimensions."""
@@ -12,14 +12,14 @@ def test_c1_feature_vector_shape():
         'reprompt_ratio': 0.1
     }])
     
-    vec = extract_c1_features(dummy_events)
+    vec = extract_behavioral_features(dummy_events)
     assert vec.shape == (15,), f"Expected shape (15,), got {vec.shape}"
     # NaN check removed: We allow NaNs to let XGBoost handle missingness natively.
 
 def test_nan_handling():
     """Verify empty missing values are imputed and no NaNs are returned."""
     empty_events = pd.DataFrame()
-    vec = extract_c1_features(empty_events)
+    vec = extract_behavioral_features(empty_events)
     assert vec.shape == (15,)
     assert not np.isnan(vec).any()
     # verify empty DF returns all zeros

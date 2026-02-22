@@ -1,4 +1,4 @@
-from prompt_features import extract_c2_features
+from prompt_features import extract_prompt_quality_features
 
 sample_prompts = [
     "fix this error",
@@ -11,7 +11,7 @@ sample_prompts = [
 print("=== C2 Feature Extractor Spot Check ===")
 for p in sample_prompts:
     print(f"\nPrompt: '{p}'")
-    feats = extract_c2_features(p)
+    feats = extract_prompt_quality_features(p)
     print(f"  Length: {feats['prompt_length']}")
     print(f"  Has Code Context: {feats['has_code_context']}")
     print(f"  Has Func Name: {feats['has_function_name']}")

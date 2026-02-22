@@ -782,10 +782,10 @@ def test_dual_write_rolls_back_on_db_error(monkeypatch):
 6. Walk through the report out loud — does it make sense given observed behavior?
 
 **Pass criteria:**
-- [ ] `session_scores` row exists with all fields populated
-- [ ] `overall_label` makes sense given the candidate's behavior during the demo
-- [ ] LLM narrative references specific session moments (not generic text)
-- [ ] No crashes, no 500s, no console errors
+- [x] `session_scores` row exists with all fields populated
+- [x] `overall_label` makes sense given the candidate's behavior during the demo
+- [x] LLM narrative references specific session moments (not generic text)
+- [x] No crashes, no 500s, no console errors
 
 ---
 
@@ -793,30 +793,30 @@ def test_dual_write_rolls_back_on_db_error(monkeypatch):
 Fix P0 bugs only. No new features.
 
 **Priority order:**
-1. Scoring pipeline crash → fix or force `SCORING_FALLBACK_MODE=true`
-2. Diff overlay decorations not clearing → fix Monaco decoration disposal
-3. Narrative not populating → check async thread + Gemini judge call; add rule-based fallback
-4. Auth redirect loop → fix route guard logic
+1. [x] Scoring pipeline crash → fix or force `SCORING_FALLBACK_MODE=true`
+2. [x] Diff overlay decorations not clearing → fix Monaco decoration disposal
+3. [x] Narrative not populating → check async thread + Gemini judge call; add rule-based fallback
+4. [x] Auth redirect loop → fix route guard logic
 
 ---
 
 ### Final Checklist Before Demo
 
 **Backend:**
-- [ ] `SCORING_FALLBACK_MODE=false`, real artifacts loading
-- [ ] `session_scores` written on every `POST /session/end`
-- [ ] Narrative populates within 15s of session end
-- [ ] `GET /analytics/overview` returns all completed sessions
+- [x] `SCORING_FALLBACK_MODE=false`, real artifacts loading
+- [x] `session_scores` written on every `POST /session/end`
+- [x] Narrative populates within 15s of session end
+- [x] `GET /analytics/overview` returns all completed sessions
 
 **Model:**
-- [ ] Both `.joblib` artifacts in `backend/models/`
-- [ ] `c1_importances.json` present
-- [ ] Fallback heuristics verified to work if artifacts somehow fail to load
+- [x] Both `.joblib` artifacts in `backend/models/`
+- [x] `c1_importances.json` present
+- [x] Fallback heuristics verified to work if artifacts somehow fail to load
 
 **Frontend:**
-- [ ] Full candidate flow zero errors
-- [ ] Full admin flow zero errors
-- [ ] No hardcoded session IDs or mock data in production paths
+- [x] Full candidate flow zero errors
+- [x] Full admin flow zero errors
+- [x] No hardcoded session IDs or mock data in production paths
 
 ---
 

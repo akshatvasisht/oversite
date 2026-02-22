@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import config
 from loader import load_wildchat
-from prompt_features import extract_c2_features
+from prompt_features import extract_prompt_quality_features
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -56,7 +56,7 @@ def parse_conversations(df: pd.DataFrame):
             next_prompt = user_msgs[i+1]
             
             # Extract features (which internally computes the 're_prompt_indicator' weak label)
-            feats_dict = extract_c2_features(current_prompt, next_prompt)
+            feats_dict = extract_prompt_quality_features(current_prompt, next_prompt)
             
             # Enforce strict structural logic
             x_vec = [feats_dict[name] for name in C2_FEATURE_NAMES]
@@ -156,7 +156,7 @@ def train_component2():
     models_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models")
     os.makedirs(models_dir, exist_ok=True)
     
-    model_path = os.path.join(models_dir, 'component2_xgboost.joblib')
+    model_path = os.path.join(models_dir, 'prompt_quality_classifier.joblib')
     importances_path = os.path.join(models_dir, 'c2_importances.json')
     
     joblib.dump(model, model_path)

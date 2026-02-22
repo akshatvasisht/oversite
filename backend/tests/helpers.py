@@ -1,4 +1,4 @@
-import models
+import schema
 from datetime import datetime, timezone, timedelta
 
 def start_session(client, username="alice", project_name="test"):
@@ -69,35 +69,35 @@ def get_events(client, sid):
 
 def seed_rich_session(db, session_id):
     now = datetime.now(timezone.utc)
-    s = models.Session(
+    s = schema.Session(
         session_id=session_id,
         username="testuser",
         started_at=now - timedelta(minutes=10)
     )
     db.add(s)
-    db.add(models.Event(
+    db.add(schema.Event(
         event_id="e1", session_id=session_id, timestamp=now - timedelta(minutes=9),
         actor="user", event_type="panel_focus", content="orientation"
     ))
-    db.add(models.Event(
+    db.add(schema.Event(
         event_id="e2", session_id=session_id, timestamp=now - timedelta(minutes=8),
         actor="user", event_type="edit", content="print('hello')"
     ))
-    db.add(models.Event(
+    db.add(schema.Event(
         event_id="e3", session_id=session_id, timestamp=now - timedelta(minutes=7),
         actor="user", event_type="execute", content="python solution.py"
     ))
-    db.add(models.AIInteraction(
+    db.add(schema.AIInteraction(
         interaction_id="ai1", session_id=session_id, phase="implementation",
         prompt="How do I implement two sum? `int[] result`", response="Here is the code...",
         shown_at=now - timedelta(minutes=6)
     ))
-    db.add(models.AISuggestion(
+    db.add(schema.AISuggestion(
         suggestion_id="s1", interaction_id="ai1", session_id=session_id,
         original_content="old", proposed_content="new", hunks_count=1,
         shown_at=now - timedelta(minutes=6)
     ))
-    db.add(models.ChunkDecision(
+    db.add(schema.ChunkDecision(
         decision_id="d1", suggestion_id="s1", session_id=session_id,
         chunk_index=0, original_code="old", proposed_code="new",
         final_code="new_modified_longer", decision="modified", time_on_chunk_ms=5000
@@ -106,29 +106,29 @@ def seed_rich_session(db, session_id):
 
 def seed_complete_session(db, session_id):
     now = datetime.now(timezone.utc)
-    s = models.Session(
+    s = schema.Session(
         session_id=session_id,
         username="pro-coder",
         started_at=now - timedelta(minutes=10)
     )
     db.add(s)
-    db.add(models.Event(
+    db.add(schema.Event(
         event_id="e_p1", session_id=session_id, timestamp=now - timedelta(minutes=9),
         actor="user", event_type="edit", content="x = 1"
     ))
-    db.add(models.Event(
+    db.add(schema.Event(
         event_id="e_p2", session_id=session_id, timestamp=now - timedelta(minutes=8),
         actor="user", event_type="execute", content="python"
     ))
-    db.add(models.AIInteraction(
+    db.add(schema.AIInteraction(
         interaction_id="ai_p1", session_id=session_id, prompt="write sum",
         response="```python\ndef s(): pass\n```", shown_at=now - timedelta(minutes=7)
     ))
-    db.add(models.AISuggestion(
+    db.add(schema.AISuggestion(
         suggestion_id="sug_p1", interaction_id="ai_p1", session_id=session_id,
         original_content="pass", proposed_content="return a+b", hunks_count=1
     ))
-    db.add(models.ChunkDecision(
+    db.add(schema.ChunkDecision(
         decision_id="dec_p1", suggestion_id="sug_p1", session_id=session_id,
         chunk_index=0, original_code="pass", proposed_code="return a+b",
         final_code="return sum(a, b)", decision="modified", time_on_chunk_ms=4000

@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timezone
 from sqlalchemy import func
-from models import Event, AIInteraction, AISuggestion, ChunkDecision, EditorEvent, Session, SessionScore
-from llm import GeminiClient
+from schema import Event, AIInteraction, AISuggestion, ChunkDecision, EditorEvent, Session, SessionScore
+from services.llm import GeminiClient
 
 logger = logging.getLogger(__name__)
 
@@ -38,19 +38,23 @@ def load_models():
     if _MODELS_CACHE:
         return _MODELS_CACHE
 
+    if os.environ.get("SCORING_FALLBACK_MODE", "false").lower() == "true":
+        logger.warning("SCORING_FALLBACK_MODE is true. Bypassing model loading.")
+        return {}
+
     base_path = os.path.dirname(__file__)
     
     # Use environment variable if provided, fallback to standard shared location
     artifacts_dir = os.environ.get(
         "MODEL_ARTIFACTS_DIR", 
-        os.path.join(os.path.dirname(base_path), "model", "models")
+        os.path.join(os.path.dirname(os.path.dirname(base_path)), "model", "models")
     )
 
     paths = [artifacts_dir, os.path.join(base_path, "models")]
 
     for p in paths:
-        c1_path = os.path.join(p, "component1_xgboost.joblib")
-        c2_path = os.path.join(p, "component2_xgboost.joblib")
+        c1_path = os.path.join(p, "behavioral_classifier.joblib")
+        c2_path = os.path.join(p, "prompt_quality_classifier.joblib")
         
         if os.path.exists(c1_path) and os.path.exists(c2_path):
             try:
@@ -64,16 +68,16 @@ def load_models():
     logger.warning("Models not found in standard paths.")
     return {}
 
-def extract_c1_features(session_id, db) -> np.ndarray:
+def extract_behavioral_features(session_id, db) -> np.ndarray:
     """
     Query the database and delegate to the unified model.features extractor.
     """
     import sys
-    import os
-    maddata_dir = os.path.dirname(os.path.dirname(__file__))
-    if maddata_dir not in sys.path:
-        sys.path.append(maddata_dir)
-    from model.features import extract_c1_features as unified_extractor
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    if base_dir not in sys.path:
+        sys.path.append(base_dir)
+        
+    from model.features import extract_behavioral_features as unified_extractor
     
     session = db.query(Session).filter_by(session_id=session_id).first()
     if not session:
@@ -86,27 +90,9 @@ def extract_c1_features(session_id, db) -> np.ndarray:
 
     # Convert SQLAlchemy objects to simple dicts for the shared logic
     data = {
-        'decisions': [
-            {
-                'decision': d.decision,
-                'time_on_chunk_ms': d.time_on_chunk_ms,
-                'proposed_code': d.proposed_code,
-                'final_code': d.final_code
-            } for d in decisions
-        ],
-        'events': [
-            {
-                'event_type': e.event_type,
-                'content': e.content,
-                'timestamp': e.timestamp
-            } for e in events
-        ],
-        'interactions': [
-            {
-                'phase': p.phase,
-                'shown_at': p.shown_at
-            } for p in interactions
-        ],
+        'decisions': [d.to_dict() for d in decisions],
+        'events': [e.to_dict() for e in events],
+        'interactions': [i.to_dict() for i in interactions],
         'session_start': session.started_at
     }
 
@@ -114,7 +100,7 @@ def extract_c1_features(session_id, db) -> np.ndarray:
 
 def run_component1(session_id, db) -> dict:
     models = load_models()
-    features = extract_c1_features(session_id, db)
+    features = extract_behavioral_features(session_id, db)
     
     if 'c1' not in models:
         # Fallback to a neutral prediction if model missing
@@ -312,13 +298,13 @@ def async_judge_task(session_id, score_id, scores_dict, excerpts):
         base_path = os.path.dirname(__file__)
         prompts_dir = os.environ.get(
             "MODEL_ARTIFACTS_DIR", 
-            os.path.join(os.path.dirname(base_path), "model", "models")
+            os.path.join(os.path.dirname(os.path.dirname(base_path)), "model", "models")
         )
-        # Assuming the text files are in the 'model' directory, not 'model/models'
+        # Assuming the text files are in the 'model/prompts' directory
         model_dir = os.path.dirname(prompts_dir) if prompts_dir.endswith("models") else prompts_dir
         
-        system_prompt_path = os.path.join(model_dir, "judge_system_prompt.txt")
-        user_prompt_path = os.path.join(model_dir, "judge_user_prompt_template.txt")
+        system_prompt_path = os.path.join(model_dir, "prompts", "judge_system_prompt.txt")
+        user_prompt_path = os.path.join(model_dir, "prompts", "judge_user_prompt_template.txt")
         
         with open(system_prompt_path, "r") as f:
             system_prompt = f.read()
@@ -329,7 +315,13 @@ def async_judge_task(session_id, score_id, scores_dict, excerpts):
         user_prompt = user_prompt_template.replace("{{ numerical_scores }}", json.dumps(scores_dict, indent=2))
         user_prompt = user_prompt.replace("{{ prompt_excerpts }}", excerpts)
         
-        narrative = client.judge_call(user_prompt, system_prompt)
+        try:
+            narrative = client.judge_call(user_prompt, system_prompt)
+        except Exception as api_err:
+            logger.error(f"Gemini API failed during judge_call: {api_err}")
+            label = scores_dict.get('label', 'Unknown').replace('_', ' ').title()
+            weight = scores_dict.get('weighted', '0.0')
+            narrative = f"Candidate scored {label} with a weighted score of {weight}. AI Narrative generation was bypassed due to high system load or API timeout."
         
         score_record = db.query(SessionScore).filter_by(score_id=score_id).first()
         if score_record:

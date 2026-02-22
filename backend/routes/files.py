@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
-from models import File, EditorEvent
+from schema import File, EditorEvent
 from utils import write_event
 from routes.session import require_session
 
@@ -59,7 +59,7 @@ def create_file(session, db):
     }), 201
 
 
-from diff import compute_edit_delta
+from services.diff import compute_edit_delta
 
 @files_bp.route("/files/<file_id>/save", methods=["POST"])
 @require_session

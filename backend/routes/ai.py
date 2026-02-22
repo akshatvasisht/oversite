@@ -2,10 +2,10 @@ import os
 import uuid
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
-from models import AIInteraction, Event
+from schema import AIInteraction, Event
 from utils import write_event
 from routes.session import require_session
-from llm import GeminiClient
+from services.llm import GeminiClient
 
 ai_bp = Blueprint("ai", __name__)
 

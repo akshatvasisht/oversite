@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
-from models import File, EditorEvent
+from schema import File, EditorEvent
 from utils import write_event
 from routes.session import require_session
 
@@ -10,7 +10,7 @@ events_bp = Blueprint("events", __name__)
 VALID_PANELS = {"editor", "chat", "filetree", "orientation", "implementation", "verification"}
 
 
-from diff import compute_edit_delta
+from services.diff import compute_edit_delta
 
 @events_bp.route("/events/editor", methods=["POST"])
 @require_session

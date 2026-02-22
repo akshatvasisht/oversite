@@ -16,7 +16,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db() -> None:
     """Initializes the database schema."""
-    import models
+    import schema
     Base.metadata.create_all(bind=engine)
     logger.info("Database initialized successfully.")
 

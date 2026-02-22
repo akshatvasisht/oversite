@@ -1,13 +1,13 @@
 import pytest
 import os
 import joblib
-from prompt_features import extract_c2_features, score_prompts
+from prompt_features import extract_prompt_quality_features, score_prompts
 
 def test_c2_model_loads():
     base_path = os.path.dirname(os.path.dirname(__file__))
-    model_path = os.path.join(base_path, "models", "component2_xgboost.joblib")
+    model_path = os.path.join(base_path, "models", "prompt_quality_classifier.joblib")
     model = joblib.load(model_path)
-    feats = extract_c2_features("fix this")
+    feats = extract_prompt_quality_features("fix this")
     
     # Needs to match the 5 features used in training, ignoring the 6th "weak supervision" label
     feature_vector = [[
