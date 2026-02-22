@@ -70,8 +70,6 @@ class ChunkDecision(Base):
     proposed_code = Column(Text, nullable=False)
     final_code = Column(Text, nullable=False)
     decision = Column(String, nullable=False)
-    decided_at = Column(DateTime)
-    time_on_chunk_ms = Column(Integer)
     chunk_start_line = Column(Integer)
     char_count_proposed = Column(Integer)
 

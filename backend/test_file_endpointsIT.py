@@ -1,6 +1,9 @@
+"""
+Integration tests for file endpoints — uses the real diff.py (no mock).
+Run after diff.py is implemented.
+"""
 import pytest
-import sys
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from flask import Flask
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -10,20 +13,6 @@ from base import Base
 from routes.session import session_bp
 from routes.files import files_bp
 import models
-
-
-@pytest.fixture(autouse=True)
-def _stub_diff():
-    """Install a diff stub per-test and restore sys.modules afterward."""
-    mock_diff = MagicMock()
-    mock_diff.compute_edit_delta.return_value = "--- a\n+++ b\n@@ -1 +1 @@\n-old\n+new"
-    original = sys.modules.get("diff")
-    sys.modules["diff"] = mock_diff
-    yield
-    if original is None:
-        sys.modules.pop("diff", None)
-    else:
-        sys.modules["diff"] = original
 
 
 @pytest.fixture
@@ -116,14 +105,14 @@ def test_create_file_with_empty_initial_content(client):
     assert r.status_code == 201
 
 
-# --- POST /files/<file_id>/save ---
+# --- POST /files/<file_id>/save (uses real diff) ---
 
 def test_save_file_success(client):
     sid = make_session(client)
     file_id = make_file(client, sid).get_json()["file_id"]
     r = client.post(
         f"/api/v1/files/{file_id}/save",
-        json={"content": "def solution():\n    return 42"},
+        json={"content": "def solution():\n    return 42\n"},
         headers={"X-Session-ID": sid},
     )
     assert r.status_code == 200
@@ -131,16 +120,22 @@ def test_save_file_success(client):
     assert "saved_at" in r.get_json()
 
 
-def test_save_file_writes_edit_event(client):
+def test_save_file_writes_edit_event_with_real_diff(client):
     sid = make_session(client)
-    file_id = make_file(client, sid).get_json()["file_id"]
+    file_id = make_file(client, sid, initial_content="# start\n").get_json()["file_id"]
     client.post(
         f"/api/v1/files/{file_id}/save",
-        json={"content": "new content"},
+        json={"content": "def solution():\n    return 42\n"},
         headers={"X-Session-ID": sid},
     )
     events = get_events(client, sid)
-    assert any(e["event_type"] == "edit" for e in events)
+    edit_events = [e for e in events if e["event_type"] == "edit"]
+    assert len(edit_events) == 1
+    # content field on the edit event is the unified diff string
+    delta = edit_events[0]["content"]
+    assert "@@" in delta
+    assert "-# start" in delta
+    assert "+def solution" in delta
 
 
 def test_save_file_missing_content(client):
@@ -164,6 +159,20 @@ def test_save_file_wrong_session(client):
         headers={"X-Session-ID": sid2},
     )
     assert r.status_code == 404
+
+
+def test_save_file_identical_content_produces_empty_delta(client):
+    content = "def foo():\n    return 1\n"
+    sid = make_session(client)
+    file_id = make_file(client, sid, initial_content=content).get_json()["file_id"]
+    client.post(
+        f"/api/v1/files/{file_id}/save",
+        json={"content": content},
+        headers={"X-Session-ID": sid},
+    )
+    events = get_events(client, sid)
+    edit_events = [e for e in events if e["event_type"] == "edit"]
+    assert edit_events[0]["content"] == ""
 
 
 # --- POST /events/file ---
