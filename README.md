@@ -1,18 +1,24 @@
-<p align="center">
-  <img width="400" height="200" alt="[Project Name] logo" src="[LOGO_URL]" />
-</p>
+![Python](https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-3.0-000000?logo=flask&logoColor=white)
+![React](https://img.shields.io/badge/React-19.2-61DAFB?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.4-007ACC?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-5.0-646CFF?logo=vite&logoColor=white)
+![Gemini](https://img.shields.io/badge/Gemini-Pro-8E75B2?logo=google-gemini&logoColor=white)
+![DVC](https://img.shields.io/badge/DVC-3.4-945DD6?logo=dvc&logoColor=white)
+![XGBoost](https://img.shields.io/badge/XGBoost-2.0-EB214C?logo=xgboost&logoColor=white)
+![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-1.4-F7931E?logo=scikit-learn&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-3.0-07405E?logo=sqlite&logoColor=white)
+![Pytest](https://img.shields.io/badge/Pytest-8.0-0A9EDC?logo=pytest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-1.0-729B1B?logo=vitest&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-![[Primary Language]](https://img.shields.io/badge/[Primary_Language]-[Version]-blue?logo=[language]&logoColor=white)
-![[Primary Framework]](https://img.shields.io/badge/[Primary_Framework]-[Version]-009688?logo=[framework]&logoColor=white)
-![License](https://img.shields.io/badge/License-[License_Type]-green)
-
-# [Project Name]
+# MadData IDE
 
 ## Overview
 
-**[Project Name]** is a [concise definition of what the software does]. It is designed to solve [specific problem] by [core mechanism or unique approach]. 
+**MadData IDE** is an AI-powered technical interview platform designed to evaluate candidate behavioral signals during algorithmic programming challenges. It provides a real-time, interactive environment where candidates code, debug, and interact with an AI assistant, all while their telemetry is recorded for multi-dimensional analysis.
 
-Unlike [alternative solution or naive approach], this system leverages [key technology/pattern] to achieve [main benefit, e.g., 10x performance, reduced cost, offline capability].
+Unlike traditional coding assessments that focus solely on completion, MadData IDE leverages developer telemetry and prompt engineering analysis to produce deeper insights into a candidate's problem-solving process.
 
 ### Core Functionality
 * **[Feature One]:** [Brief description of what it does].

@@ -1,35 +1,80 @@
 # Coding Standards & Style Guide
 
-## General Principles
+## 1. General Principles
 
-### Professionalism & Tone
-* All comments and documentation must use objective, technical language.
-* Avoid informal language or environment-specific justifications.
-* **Correct:** "Defaults to CPU inference for wider hardware compatibility."
-* **Incorrect:** "Running on my laptop so GPU wasn't available."
+### 1.1 Professionalism & Tone
+* **Objective Language:** All documentation and comments must use objective, technical language.
+* **Techncial Constraints:** Describe technical constraints rather than environmental ones.
+    * *Incorrect:* "Running on my hackathon laptop."
+    * *Correct:* "Defaulting to CPU inference for wider hardware compatibility."
 
-### Intent over Implementation
-* Comments must explain *why* a decision was made, not narrate *what* the code does.
-* The code itself should be self-explanatory for the *what*.
+### 1.2 Intent over Implementation
+* **Why, Not What:** Comments should explain *why* a decision was made. Do not narrate the code execution logic step-by-step.
+* **No Meta-Commentary:** Do not leave "thinking traces," internal debates, or editing notes in the codebase.
+    * *Forbidden:* `// I tried X but it failed, so I'm doing Y...`
+    * *Allowed:* `// Uses Y to ensure thread safety during high-load.`
 
-### No Meta-Commentary
-* Forbid internal debate traces, failed attempt logs, or editing notes in committed code.
-* **Correct:** `// Uses Y to ensure thread safety under concurrent load`
-* **Incorrect:** `// I tried using X but it kept breaking so I switched to Y`
+## 2. Python Guidelines (Backend)
 
-## Language Guidelines
+### 2.1 Docstrings
+* **Format:** Use Google Style docstrings.
+* **Structure:** Clearly separate the description, arguments (**Args**), and return values (**Returns**).
 
-### [Language Name]
-* **Naming:** [e.g., camelCase for vars, PascalCase for classes]
-* **Type Safety:** [e.g., Strict typing required]
-* **Async/Await:** [e.g., Prefer async/await over promises]
+**Bad Example:**
+```python
+def process_score(data):
+    """1. Get data. 2. Run model. 3. Return result."""
+```
 
-## Git Workflow
-* **Branches:** Name branches systematically: `feature/description`, `fix/description`, `chore/description`.
-* **Commits:** Messages must use imperative mood, present tense, and be under 72 characters for the subject line. Commits must be atomic (one logical change per commit).
-* **Pull Requests:** PRs must include a description of what changed and why.
+**Good Example:**
+```python
+def process_score(session_id: str) -> Dict[str, Any]:
+    """
+    Triggers the scoring pipeline for a completed interview session.
 
-## Code Comments
-* Trivial logic must not be commented.
-* Complex logic, non-obvious decisions, and "gotchas" must be commented.
-* Commented-out code must not be committed unless accompanied by a TODO with a ticket/issue reference.
+    Args:
+        session_id: UUID string of the session to analyze.
+
+    Returns:
+        A dictionary containing Component scores (C1, C2, C3) and importance metrics.
+
+    Raises:
+        ValueError: If the session does not exist or is not marked as ended.
+    """
+```
+
+### 2.2 Shared Logic
+* Any logic used by both Training and Serving (e.g., feature extraction) MUST reside in the `model/` package.
+
+## 3. Frontend Guidelines (TSX / React / Vite)
+
+### 3.1 Documentation Standards
+* **JSDoc:** Use standard JSDoc format (`/** ... */`) for exported functions, hooks, and complex component props.
+
+**Example:**
+```typescript
+/**
+ * Interactive Monaco Editor wrapper.
+ * Handles debounced telemetry logging of incremental code changes.
+ */
+export default function CodeEditor({ fileId, initialContent }: EditorProps) {
+  // ...
+}
+```
+
+### 3.2 Code Style
+* **Interfaces:** Define explicit interfaces for all component props.
+* **Hooks:** Prefer custom hooks (e.g., `useSession.ts`) to keep UI components focused on rendering.
+
+## 4. Testing & Ops
+
+### 4.1 Testing Standards
+* **Framework:** Use `pytest` (backend) and `vitest` (frontend).
+* **Mocking:** All external dependencies (Gemini, third-party APIs) MUST be mocked in automated suites.
+* **Naming:** Test files prefixed with `test_`, test functions prefixed with `test_`.
+
+### 4.2 Scripting Guidelines
+* Ensure scripts in `backend/scripts/` are executable and include a shebang (`#!/usr/bin/env python3`).
+* Scripts should provide clear print statements indicating the current step.
+
+---

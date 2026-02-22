@@ -1,70 +1,75 @@
 # Environment Setup Instructions
 
 ## Prerequisites
-* [Language/Runtime Version]
-* [System Dependency 1]
-* [System Dependency 2]
+* **Python 3.9+**
+* **Node.js 18+**
+* **npm** or **yarn**
+* **Git**
+* **DVC** (Data Version Control) - Required for fetching ML models.
 
 ## Installation
 
-> **Note:** First-run execution may download models, caches, or dependencies before starting.
-
-### Automated Setup (Recommended)
-You can set up the environment automatically using the setup script:
+### 1. Repository Setup
 ```bash
-git clone [https://github.com/username/repo.git](https://github.com/username/repo.git)
-cd repo
-[command to run setup script, e.g., ./setup.sh]
+git clone <repo-url>
+cd maddata
 ```
 
-### Manual Setup
-If you prefer manual setup, follow these steps:
+### 2. Backend Setup
 ```bash
-git clone [https://github.com/username/repo.git](https://github.com/username/repo.git)
-cd repo
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
 ```
-[install command, e.g., npm install or pip install -r requirements.txt]
 
-## Environment Variables
-Create a `.env` file in the root directory:
+### 3. Frontend Setup
+```bash
+cd frontend
+npm install
+```
 
-### Required
-These variables must be set for the application to run.
-* `API_KEY`: [description of what it does and where to obtain it]
-* `DB_URL`: [description of what it does and where to obtain it, e.g., postgres://...]
+### 4. Fetching ML Models (DVC)
+The scoring engine requires pre-trained XGBoost models. Fetch them from the remote:
+```bash
+dvc pull
+```
 
-### Optional
-These variables modify default behavior.
-* `DEBUG_MODE`: [description of effect], default: `true`
-Running the Application
-Development Mode
-Bash
+#### DVC vs. Fallback Mode
+*   **DVC Enabled:** If you have access to the DVC remote and run `dvc pull`, the backend will use verified ML models stored in `model/models/`.
+*   **Fallback Mode:** If DVC is unavailable, set `SCORING_FALLBACK_MODE=true` in your `.env`. The backend will bypass ML inference and use **heuristic-based behavioral patterns** to generate scores. This is recommended for local development without the full data science artifacts.
 
-[command to run dev server]
-Production Build
-Bash
+## Running the Application
 
-[command to build/run prod]
+### 1. Start Backend
+```bash
+cd backend
+python app.py
+```
 
-## Logging
+### 2. Start Frontend
+```bash
+cd frontend
+npm run dev
+```
 
-* **Location:** Log files are stored in `[Path to logs directory, e.g., /var/log/app or ./logs]`.
-* **Configuration:** Log level can be configured via the `[LOG_LEVEL]` environment variable (e.g., `DEBUG`, `INFO`, `ERROR`).
-* **Real-time Tail:** View logs in real-time by running `tail -f [path/to/logfile.log]`.
-* **Rotation Policy:** [Placeholder for log rotation/size policy, e.g., Rotates daily or at 50MB, keeping last 7 days].
+The application is accessible at `http://localhost:5173`.
 
-## Troubleshooting
+## Developer Workflow
 
-### Environment & Dependency Issues
-**Issue:** `[Placeholder: e.g., ModuleNotFoundError: No module named 'library']`
-**Fix:** `[Placeholder: e.g., Ensure you have activated your virtual environment and run the install command again.]`
+### Running Tests
+* **Backend Suite:** `cd backend && python -m pytest`
+* **Frontend Suite:** `cd frontend && npm test`
+* **Smoke Test:** `python demo_smoke_test.py` (E2E happy path).
 
-### Runtime Errors
-**Issue:** `[Placeholder: e.g., ConnectionRefusedError when connecting to database]`
-**Fix:** `[Placeholder: e.g., Verify that the database service is running and DB_URL is correctly set in .env.]`
+## Troubleshooting Matrix
 
-### Network & Config Issues
-**Issue:** `[Placeholder: e.g., CORS error on API requests]`
-**Fix:** `[Placeholder: e.g., Ensure the origin domain is added to the ALLOWED_ORIGINS list in your config.]`
+| Symptom | Probable Cause | Resolution |
+| :--- | :--- | :--- |
+| **Model failed to load** | Missing DVC artifacts | Run `dvc pull` or set `SCORING_FALLBACK_MODE=true`. |
+| **SQLite: database locked** | Concurrent DB access | Close other instances of `app.py` or SQL browsers. |
+| **CORS Error** | Backend not on port 8000 | Ensure backend is running and `VITE_API_URL` is correct. |
+| **Import: No module 'model'** | Improper PYTHONPATH | Install in editable mode: `pip install -e .` from root. |
+| **AI Chat: 502 Error** | Invalid API Key | Verify `GOOGLE_API_KEY` in `.env`. |
 
 ---
