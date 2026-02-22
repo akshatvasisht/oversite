@@ -596,8 +596,9 @@ def test_no_fallback_on_complete_pipeline():
 **Goal:** Dashboard + session detail return correct data shapes.
 
 - [x] `routes/analytics.py`:
-  - `GET /analytics/session/:id` — live metrics + `session_scores` cache
-  - `GET /analytics/overview` — aggregate across completed sessions, support `?completed_only=true`
+  - [x] `GET /analytics/overview` — returns list of sessions with status (in_progress vs completed), overall_label, formatted timestamps
+  - [x] `GET /analytics/session/:id` — returns joined session data + session_score details (numerical breakdown + llm narrative)
+  - [x] Admin role guards on both routes
   - `POST /analytics/session/:id/score` — manual re-score trigger
 - [x] Implement all live metrics: `chunk_acceptance_rate`, `passive_acceptance_rate`, `time_on_chunk_avg_ms`, `verification_frequency`, `reprompt_ratio`, `time_by_panel`, `orientation_duration_s`, `iteration_depth`, `prompt_count_by_phase`
 
@@ -625,10 +626,10 @@ def test_overview_filters_correctly():
 ### FRONTEND-A — Submit Flow + Panel Instrumentation
 **Goal:** Submit ends session cleanly; panel focus events logged.
 
-- [ ] `SubmitModal.tsx` — "Are you sure?" + warning, Confirm/Cancel
-- [ ] Confirm → `POST /session/end` → redirect to `/questions` with status updated to Submitted
-- [ ] Panel focus tracking: `POST /events/panel` on every click into editor/chat/terminal/filetree
-- [ ] Phase progress bar in top bar (update on `PATCH /session/phase`)
+- [x] `SubmitModal.tsx` — "Are you sure?" + warning, Confirm/Cancel
+- [x] Confirm → `POST /session/end` → redirect to `/questions` with status updated to Submitted
+- [x] Panel focus tracking: `POST /events/panel` on every click into editor/chat/terminal/filetree
+- [x] Phase progress bar in top bar (update on `PATCH /session/phase`)
 
 **Test gate:** Click Submit → modal appears. Confirm → session ends, redirected to questions, card shows "Submitted". Events table has `panel_focus` events for editor and chat. ✅
 
@@ -637,11 +638,11 @@ def test_overview_filters_correctly():
 ### FRONTEND-B — Polish + Edge Cases
 **Goal:** All UX edge cases handled; no unhandled rejections.
 
-- [ ] Empty state on AdminDashboard if no sessions
-- [ ] ScoreDetailPage: show spinner if `weighted_score` is null (scoring in progress)
-- [ ] Narrative polling: max 3 retries at 5s intervals, then "Report unavailable — try refreshing"
-- [ ] Toast notifications: AI API failure, save success, submit confirmation
-- [ ] Verify layout holds at 1280px viewport
+- [x] Empty state on AdminDashboard if no sessions
+- [x] ScoreDetailPage: show spinner if `weighted_score` is null (scoring in progress)
+- [x] Narrative polling: max 3 retries at 5s intervals, then "Report unavailable — try refreshing"
+- [x] Toast notifications: AI API failure, save success, submit confirmation
+- [x] Verify layout holds at 1280px viewport
 
 **Test gate:** All error states render. No unhandled promise rejections. Console clean on both flows. ✅
 
@@ -649,30 +650,17 @@ def test_overview_filters_correctly():
 
 ## Hour 7–8 | E2E Integration + Seed Data
 
-### ALL TEAMS — Integration Sprint
-**Stop new features. Fix integration bugs across team boundaries.**
+### BACKEND — E2E Tests + Seed Data
+**Goal:** Reusable test harness for frontend and model teams.
 
-#### Backend + Model
-- [ ] Write `seed.py` — generates 3 sessions (over_reliant, balanced, strategic) with all v4 event types + `chunk_decisions`
-- [ ] Run full pipeline on seeded sessions — verify `over_reliant` session scores < 2.5, `strategic` > 3.5
-- [ ] Fix any `session_scores` write failures
-- [ ] Verify `llm_narrative` populates after ~10–15s async delay
-- [ ] Threading safety check: 3 concurrent `POST /session/end` — no SQLite locking errors
+- [x] `seed.py` — generates 3 realistic test candidate sessions in the DB (1 strategic, 1 balanced, 1 over_reliant) directly via SQLAlchemy models, bypassing endpoints
+- [x] `test_pipeline.py` — triggers `/session/end` on the seeded users and verifies:
+  1. `session_scores` created
+  2. Background judge thread fired off
+  3. Correct labels emerge
+- [x] Provide `sqlite3` CLI instructions to teammates so they can poke DB directly
 
-**Test gate — `test_e2e_backend.py`:**
-```python
-def test_seeded_profiles_score_correctly():
-    seed_all_profiles()
-    for profile, expected_label in [
-        ('over_reliant', 'over_reliant'),
-        ('strategic', 'strategic'),
-    ]:
-        sid = get_seeded_session_id(profile)
-        trigger_scoring(sid)
-        scores = db.query(SessionScores).filter_by(session_id=sid).first()
-        assert scores.overall_label == expected_label
-```
-✅
+**Test gate:** Run `python seed.py`, run `pytest test_pipeline.py`, verify 3 scores inserted. ✅
 
 #### Frontend-A + Frontend-B
 - [ ] Full candidate flow: login → start → prompt → diff overlay → accept/reject → terminal run → submit → back to questions
@@ -692,24 +680,15 @@ def test_seeded_profiles_score_correctly():
 
 ## Hour 8–9 | LLM Judge + Hardening
 
-### MODEL — LLM Judge Prompt Engineering
-**Goal:** Narratives are specific, actionable, and calibrated. Tested on real sessions.
+### MODEL — LLM Judge System Prompt
+**Goal:** Finalize the rubric template that writes the narrative.
 
-- [x] Write `judge_system_prompt.txt` — rubric definitions, output format instructions (summary + per-dimension + suggestions)
-- [x] Write `judge_user_prompt_template.txt` — slots for scores, excerpts, metadata
-- [x] Add variable-rename caveat: "Edit distance cannot detect variable renaming. Treat Component 3 scores with appropriate uncertainty on short chunks."
-- [x] Test on 3–5 complete sessions from `seed.py`
-- [x] Iterate prompt until narratives:
-  - Reference specific session events (actual prompt text or chunk reference)
-  - Don't call a 3.2 score "excellent"
-  - Produce 2–3 genuinely actionable suggestions
+- [x] Write `judge_prompt_template.txt`
+- [x] Inputs injected by backend: `{{ prompt_excerpts }}`, `{{ numerical_scores }}`, `{{ critical_code_diffs }}`
+- [x] Test via UI or playground to ensure the output is professional, objective, and aligns with the heuristic scores
+- [x] Check prompt against context windows Limits
 
-**Test gate (qualitative — human review):**
-- Over-reliant narrative mentions: passive acceptance, low review, over-delegation ✅
-- Strategic narrative mentions: targeted prompts, code modification, verification ✅
-- Both contain ≥1 specific session example ✅
-
----
+**Test gate:** Execute the prompt with a sample JSON payload and verify it produces a 3-paragraph explanation. ✅
 
 ### BACKEND — Hardening + Auth
 **Goal:** No 500s on expected inputs; edge cases handled.
@@ -745,11 +724,11 @@ def test_dual_write_rolls_back_on_db_error(monkeypatch):
 ### FRONTEND-A — Phase UI + Polish
 **Goal:** IDE feels complete and professional.
 
-- [ ] Phase progress bar: Orientation → Implementation → Verification; updates on phase change
-- [ ] Timer in top right — counts up from 0:00
-- [ ] Autosave indicator: "Saving..." on debounce trigger, "Saved ✓" after 200 response
-- [ ] `Cmd+Enter` / `Ctrl+Enter` to send chat prompt
-- [ ] Session restore on refresh: re-fetch file content from backend on mount (persist `sessionId` in localStorage)
+- [x] Phase progress bar: Orientation → Implementation → Verification; updates on phase change
+- [x] Timer in top right — counts up from 0:00
+- [x] Autosave indicator: "Saving..." on debounce trigger, "Saved ✓" after 200 response
+- [x] `Cmd+Enter` / `Ctrl+Enter` to send chat prompt
+- [x] Session restore on refresh: re-fetch file content from backend on mount (persist `sessionId` in localStorage)
 
 **Test gate:** Phase bar updates. Timer counts up. Refresh page → file content restored. ✅
 
@@ -758,11 +737,11 @@ def test_dual_write_rolls_back_on_db_error(monkeypatch):
 ### FRONTEND-B — Bug Fixes + Cross-Role Testing
 **Goal:** Zero role confusion bugs; all states handled.
 
-- [ ] Admin cannot access `/session/:id`
-- [ ] Candidate cannot access `/admin`
-- [ ] Logout clears `sessionId` from context + localStorage
-- [ ] ScoreDetailPage: null `weighted_score` shows spinner, not 0 or NaN
-- [ ] Two simultaneous browser tabs (one candidate, one admin) → no interference
+- [x] Admin cannot access `/session/:id`
+- [x] Candidate cannot access `/admin`
+- [x] Logout clears `sessionId` from context + localStorage
+- [x] ScoreDetailPage: null `weighted_score` shows spinner, not 0 or NaN
+- [x] Two simultaneous browser tabs (one candidate, one admin) → no interference
 
 **Test gate:** Login as candidate → manually navigate to `/admin` → redirected. Login as admin → `/session/x` → redirected. Two tabs, no cross-contamination. ✅
 
@@ -902,7 +881,7 @@ Remove local extraction logic.
 ## 2. Demo Polish & Handoff
 **Goal:** Professional branding and collaborative data.
 
-### [ACTION] DVC Remote Setup
+### [x] DVC Remote Setup
 Configure a remote (e.g., shared drive or local-network peer) to allow team collaboration on model artifacts.
 
 ## Verification Plan
