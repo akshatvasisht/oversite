@@ -5,11 +5,13 @@ auth_bp = Blueprint("auth", __name__)
 
 TEST_USERS = {
     "candidate1": "password123",
+    "candidate2": "password123",
     "admin1": "admin123"
 }
 
 ROLES = {
     "candidate1": "candidate",
+    "candidate2": "candidate",
     "admin1": "admin"
 }
 

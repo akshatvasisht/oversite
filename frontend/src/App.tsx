@@ -29,9 +29,11 @@ const LoginPage = () => {
 
   const signInAs = async (user: string): Promise<void> => {
     const normalized = user.trim().toLowerCase();
-    const isDemouser = normalized === 'testuser1' || normalized === 'candidate1';
-    const pwd = normalized === 'admin1' || normalized === 'admin' ? 'admin123' : (isDemouser ? 'password123' : 'password123');
-    const uName = normalized === 'admin' ? 'admin1' : (normalized === 'testuser1' ? 'candidate1' : normalized);
+    const pwd = normalized === 'admin1' || normalized === 'admin' ? 'admin123' : 'password123';
+    const uName = normalized === 'admin' ? 'admin1'
+      : normalized === 'testuser1' ? 'candidate1'
+      : normalized === 'testuser2' ? 'candidate2'
+      : normalized;
 
     try {
       const resp = await api.post('/auth/login', { username: uName, password: pwd });
@@ -65,13 +67,13 @@ const LoginPage = () => {
               id="username"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
-              placeholder="testuser1 or admin"
+              placeholder="candidate1 or admin1"
             />
             <Button type="submit">Sign In</Button>
           </form>
           <div className="demo-divider">quick access</div>
           <div className="demo-row">
-            <Button type="button" variant="secondary" onClick={() => signInAs('testuser1')}>
+            <Button type="button" variant="secondary" onClick={() => signInAs('candidate1')}>
               Demo Candidate
             </Button>
             <Button type="button" variant="secondary" onClick={() => signInAs('admin')}>
