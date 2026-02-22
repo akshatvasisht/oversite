@@ -72,6 +72,7 @@ class ChunkDecision(Base):
     decision = Column(String, nullable=False)
     chunk_start_line = Column(Integer)
     char_count_proposed = Column(Integer)
+    time_on_chunk_ms = Column(Integer)
 
 
 class EditorEvent(Base):

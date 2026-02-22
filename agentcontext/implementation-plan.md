@@ -478,11 +478,11 @@ def test_c2_per_prompt_scores_populated():
 ### MODEL — Component 3 Calibration + Aggregation Layer
 **Goal:** Heuristic thresholds validated; aggregation layer differentiates profiles.
 
-- [ ] Implement `component3_score(proposed_code, final_code, decision) -> int` with thresholds from PRD
-- [ ] Validate thresholds against CUPS post-acceptance edit rate distribution — check 0.05/0.15/0.35/0.60 cover distribution percentiles meaningfully
-- [ ] Write `aggregate_scores(c1, c2, c3, feature_importances) -> (float, str)`
-- [ ] Generate 20 synthetic sessions (5 each profile) via prompted Gemini; run pipeline on them
-- [ ] **Contrastive test:** for each task, strategic must score higher than over_reliant
+- [x] Implement `component3_score(proposed_code, final_code, decision) -> int` with thresholds from PRD
+- [x] Validate thresholds against CUPS post-acceptance edit rate distribution — check 0.05/0.15/0.35/0.60 cover distribution percentiles meaningfully
+- [x] Write `aggregate_scores(c1, c2, c3, feature_importances) -> (float, str)`
+- [x] Generate 20 synthetic sessions (5 each profile) via prompted Gemini; run pipeline on them
+- [x] **Contrastive test:** for each task, strategic must score higher than over_reliant
 
 **Test gate — `test_aggregation.py`:**
 ```python
