@@ -59,11 +59,11 @@ def create_file(session, db):
     }), 201
 
 
+from diff import compute_edit_delta
+
 @files_bp.route("/files/<file_id>/save", methods=["POST"])
 @require_session
 def save_file(session, db, file_id):
-    from diff import compute_edit_delta  # available after Step 3
-
     data = request.get_json()
     content = data.get("content")
 

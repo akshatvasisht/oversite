@@ -7,3 +7,5 @@ xgboost
 lightgbm
 joblib
 scikit-learn
+pandas
+numpy

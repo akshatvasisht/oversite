@@ -1,4 +1,6 @@
 import pytest
+import os
+import joblib
 from component3 import component3_score
 
 def test_zero_decisions_neutral_score():
@@ -39,6 +41,14 @@ def test_balanced_tweaks_scores_3():
         }
     ]
     assert component3_score(decisions) == 3.0
+
+def test_c3_model_loads():
+    model_path = "model/models/component3_xgboost.joblib"
+    if not os.path.exists(model_path):
+        import pytest
+        pytest.skip("C3 model file not found")
+    
+    model = joblib.load(model_path)
 
 def test_heavy_modification_scores_high():
     # Strategic rewriting. Total rewrite of body.

@@ -5,6 +5,7 @@ from flask import Blueprint, request, jsonify
 from db import get_db
 from models import Session, Event
 from utils import write_event
+from scoring import trigger_scoring
 
 session_bp = Blueprint("session", __name__)
 
@@ -92,7 +93,9 @@ def end_session(session, db):
 
     db.commit()
 
-    # Scoring pipeline will be wired here in Step 12
+    # Trigger full scoring pipeline
+    trigger_scoring(session.session_id, db)
+
     return jsonify({
         "session_id": session.session_id,
         "ended_at": now.isoformat(),

@@ -4,13 +4,11 @@ import json
 import joblib
 import numpy as np
 
-# Add parent directory to path to import local modules
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from features import FEATURE_NAMES
 
-MODELS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models")
-MODEL_PATH = os.path.join(MODELS_DIR, 'component1_xgboost.joblib')
-IMPORTANCES_PATH = os.path.join(MODELS_DIR, 'c1_importances.json')
+MODELS_DIR = "model/models"
+MODEL_PATH = "model/models/component1_xgboost.joblib"
+IMPORTANCES_PATH = "model/models/c1_importances.json"
 
 def test_c1_model_loads_and_predicts():
     """Verify that the XGBoost model can be loaded and predicted upon with a 15-dim vector."""

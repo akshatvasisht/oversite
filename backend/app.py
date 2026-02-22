@@ -9,6 +9,7 @@ from routes.files import files_bp
 from routes.ai import ai_bp
 from routes.suggestions import suggestions_bp
 from routes.events import events_bp
+from scoring import load_models
 
 import logging
 
@@ -35,4 +36,5 @@ def health() -> Any:
 
 if __name__ == "__main__":
     init_db()  # Make sure tables are created on start (useful for local dev)
+    load_models() # Warm up the model cache
     app.run(port=8000, debug=True)

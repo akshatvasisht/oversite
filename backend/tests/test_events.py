@@ -1,87 +1,20 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from flask import Flask
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+from helpers import make_session, make_file, get_events
 
-from base import Base
-from routes.session import session_bp
-from routes.files import files_bp
-from routes.events import events_bp
-import models
+def start_session(client, username="alice", project_name="test"):
+    return client.post("/api/v1/session/start", json={"username": username, "project_name": project_name})
 
+def get_session_id(client):
+    return make_session(client)
 
 @pytest.fixture(autouse=True)
 def _stub_diff():
+    """Install a diff stub per-test."""
     mock_diff = MagicMock()
     mock_diff.compute_edit_delta.return_value = "--- a\n+++ b\n@@ -1 +1 @@\n-old\n+new"
-    original = __import__("sys").modules.get("diff")
-    __import__("sys").modules["diff"] = mock_diff
-    yield mock_diff
-    if original is None:
-        __import__("sys").modules.pop("diff", None)
-    else:
-        __import__("sys").modules["diff"] = original
-
-
-@pytest.fixture
-def engine():
-    _engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(_engine)
-    yield _engine
-    Base.metadata.drop_all(_engine)
-
-
-@pytest.fixture
-def app(engine):
-    TestSession = sessionmaker(bind=engine)
-
-    def mock_get_db():
-        s = TestSession()
-        try:
-            yield s
-        finally:
-            s.close()
-
-    flask_app = Flask(__name__)
-    flask_app.register_blueprint(session_bp, url_prefix="/api/v1")
-    flask_app.register_blueprint(files_bp, url_prefix="/api/v1")
-    flask_app.register_blueprint(events_bp, url_prefix="/api/v1")
-    flask_app.config["TESTING"] = True
-
-    with patch("routes.session.get_db", mock_get_db):
-        yield flask_app
-
-
-@pytest.fixture
-def client(app):
-    return app.test_client()
-
-
-# --- helpers ---
-
-def make_session(client):
-    r = client.post("/api/v1/session/start", json={"username": "alice", "project_name": "test"})
-    return r.get_json()["session_id"]
-
-
-def make_file(client, sid, initial_content="# start"):
-    r = client.post(
-        "/api/v1/files",
-        json={"filename": "solution.py", "initial_content": initial_content},
-        headers={"X-Session-ID": sid},
-    )
-    return r.get_json()["file_id"]
-
-
-def get_events(client, sid):
-    return client.get(f"/api/v1/session/{sid}/trace").get_json()["events"]
-
+    with patch("routes.events.compute_edit_delta", mock_diff.compute_edit_delta):
+        yield mock_diff
 
 # --- POST /events/editor ---
 

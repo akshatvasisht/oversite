@@ -1,90 +1,10 @@
-import pytest
-from unittest.mock import patch, MagicMock
-from flask import Flask
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
-from base import Base
-from routes.session import session_bp
-from routes.files import files_bp
-from routes.ai import ai_bp
-import models
-
-
-@pytest.fixture(autouse=True)
-def _stub_gemini():
-    """Mock GeminiClient so no real API calls are made."""
-    mock_client = MagicMock()
-    mock_client.assistant_call.return_value = "Here is a solution:\n```python\nreturn 42\n```"
-    with patch("routes.ai.GeminiClient", return_value=mock_client):
-        yield mock_client
-
-
-@pytest.fixture
-def engine():
-    _engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(_engine)
-    yield _engine
-    Base.metadata.drop_all(_engine)
-
-
-@pytest.fixture
-def app(engine):
-    TestSession = sessionmaker(bind=engine)
-
-    def mock_get_db():
-        s = TestSession()
-        try:
-            yield s
-        finally:
-            s.close()
-
-    flask_app = Flask(__name__)
-    flask_app.register_blueprint(session_bp, url_prefix="/api/v1")
-    flask_app.register_blueprint(files_bp, url_prefix="/api/v1")
-    flask_app.register_blueprint(ai_bp, url_prefix="/api/v1")
-    flask_app.config["TESTING"] = True
-
-    with patch("routes.session.get_db", mock_get_db):
-        yield flask_app
-
-
-@pytest.fixture
-def client(app):
-    return app.test_client()
-
-
-# --- helpers ---
-
-def make_session(client):
-    r = client.post("/api/v1/session/start", json={"username": "alice", "project_name": "test"})
-    return r.get_json()["session_id"]
-
-
-def make_file(client, sid):
-    r = client.post(
-        "/api/v1/files",
-        json={"filename": "solution.py", "initial_content": "# start"},
-        headers={"X-Session-ID": sid},
-    )
-    return r.get_json()["file_id"]
-
-
-def get_events(client, sid):
-    return client.get(f"/api/v1/session/{sid}/trace").get_json()["events"]
-
+from helpers import make_session, make_file, get_events
 
 def chat(client, sid, prompt="explain this", file_id=None):
     body = {"prompt": prompt}
     if file_id:
         body["file_id"] = file_id
     return client.post("/api/v1/ai/chat", json=body, headers={"X-Session-ID": sid})
-
 
 # --- POST /ai/chat ---
 
