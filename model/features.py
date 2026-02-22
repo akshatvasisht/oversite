@@ -54,31 +54,29 @@ def extract_c1_features(events_df: pd.DataFrame) -> np.ndarray:
     # If it's a pre-aggregated row (like from CUPS dataloader)
     row = events_df.iloc[0] if len(events_df) > 0 else pd.Series()
 
-    feats['acceptance_rate'] = float(row.get('acceptance_rate', 0.5))
-    feats['deliberation_time_avg'] = float(row.get('deliberation_time', 10.0))
-    feats['post_acceptance_edit_rate'] = float(row.get('post_acceptance_edit_rate', 0.1))
-    feats['verification_frequency'] = float(row.get('verification_frequency', 0.0))
-    feats['reprompt_ratio'] = float(row.get('reprompt_ratio', 0.0))
+    feats['acceptance_rate'] = float(row.get('acceptance_rate', np.nan))
+    feats['deliberation_time_avg'] = float(row.get('deliberation_time', np.nan))
+    feats['post_acceptance_edit_rate'] = float(row.get('post_acceptance_edit_rate', np.nan))
+    feats['verification_frequency'] = float(row.get('verification_frequency', np.nan))
+    feats['reprompt_ratio'] = float(row.get('reprompt_ratio', np.nan))
     
-    # Impute missing values for backend-specific granular features not in CUPS.
-    # We use neutral/median defaults so training doesn't break, and the model
-    # learns to rely on the primary CUPS features.
-    feats['chunk_acceptance_rate'] = float(row.get('chunk_acceptance_rate', feats['acceptance_rate']))
-    feats['passive_acceptance_rate'] = float(row.get('passive_acceptance_rate', 0.2))
-    feats['time_on_chunk_avg_ms'] = float(row.get('time_on_chunk_avg_ms', 5000.0))
-    feats['time_by_panel_editor_pct'] = float(row.get('time_by_panel_editor_pct', 0.6))
-    feats['time_by_panel_chat_pct'] = float(row.get('time_by_panel_chat_pct', 0.4))
-    feats['orientation_duration_s'] = float(row.get('orientation_duration_s', 30.0))
-    feats['iteration_depth'] = float(row.get('iteration_depth', 1.0))
-    feats['prompt_count_orientation_phase'] = float(row.get('prompt_count_orientation_phase', 1.0))
-    feats['prompt_count_implementation_phase'] = float(row.get('prompt_count_implementation_phase', 3.0))
-    feats['prompt_count_verification_phase'] = float(row.get('prompt_count_verification_phase', 1.0))
+    # Use NaN for backend-specific granular features not in CUPS.
+    # XGBoost handles missingness natively, which is superior to arbitrary imputation.
+    feats['chunk_acceptance_rate'] = float(row.get('chunk_acceptance_rate', np.nan))
+    feats['passive_acceptance_rate'] = float(row.get('passive_acceptance_rate', np.nan))
+    feats['time_on_chunk_avg_ms'] = float(row.get('time_on_chunk_avg_ms', np.nan))
+    feats['time_by_panel_editor_pct'] = float(row.get('time_by_panel_editor_pct', np.nan))
+    feats['time_by_panel_chat_pct'] = float(row.get('time_by_panel_chat_pct', np.nan))
+    feats['orientation_duration_s'] = float(row.get('orientation_duration_s', np.nan))
+    feats['iteration_depth'] = float(row.get('iteration_depth', np.nan))
+    feats['prompt_count_orientation_phase'] = float(row.get('prompt_count_orientation_phase', np.nan))
+    feats['prompt_count_implementation_phase'] = float(row.get('prompt_count_implementation_phase', np.nan))
+    feats['prompt_count_verification_phase'] = float(row.get('prompt_count_verification_phase', np.nan))
 
-    # Return exactly the 15 features in established order
+    # Return exactly the 15 features in established order.
+    # We do NOT use np.nan_to_num here. XGBoost handles np.nan natively
+    # via its Default Direction for missing data. 
     vector = np.array([feats[name] for name in FEATURE_NAMES], dtype=np.float32)
-    
-    # NaN check fallback
-    vector = np.nan_to_num(vector, nan=0.0)
     
     return vector
 

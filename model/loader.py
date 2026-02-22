@@ -112,7 +112,7 @@ def passes_wildchat_filters(conversation: List[Dict[str, Any]]) -> bool:
     Returns:
         bool: True if the conversation passes the filters.
     """
-    if not isinstance(conversation, list) or len(conversation) < config.WILDCHAT_MIN_TURNS:
+    if len(conversation) < config.WILDCHAT_MIN_TURNS:
         return False
     
     return any(
@@ -120,16 +120,51 @@ def passes_wildchat_filters(conversation: List[Dict[str, Any]]) -> bool:
         for turn in conversation
     )
 
-def load_wildchat(max_records: int = config.WILDCHAT_MAX_RECORDS) -> pd.DataFrame:
+def load_wildchat(max_records: int = config.WILDCHAT_MAX_RECORDS, use_local_shard: bool = True) -> pd.DataFrame:
     """
-    Loads and filters the WildChat dataset using streaming.
+    Loads and filters the WildChat dataset.
     
     Args:
         max_records: Maximum number of filtered records to collect.
+        use_local_shard: Whether to use the downloaded parquet shard.
         
     Returns:
         pd.DataFrame: A DataFrame of filtered coding conversations.
     """
+    data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+    parquet_path = os.path.join(data_dir, 'wildchat_shard.parquet')
+
+    if use_local_shard and os.path.exists(parquet_path):
+        logger.info(f"Loading actual WildChat data from local shard: {parquet_path}")
+        try:
+            # We only need the conversation column
+            df = pd.read_parquet(parquet_path, columns=['conversation'])
+            logger.info(f"Processing {len(df)} records for coding filters...")
+            
+            # Use faster filtering
+            def filter_func(conv):
+                if len(conv) < config.WILDCHAT_MIN_TURNS:
+                    return False
+                return any('```' in str(turn.get('content', '')) for turn in conv)
+
+            # We'll do it in chunks or use a more explicit loop to show progress
+            filtered_records = []
+            count = 0
+            for idx, conv in enumerate(df['conversation']):
+                if filter_func(conv):
+                    filtered_records.append({'conversation': conv})
+                    if len(filtered_records) >= max_records:
+                        break
+                if idx % 5000 == 0 and idx > 0:
+                    logger.info(f"Scanned {idx} records, found {len(filtered_records)} targets...")
+            
+            final_df = pd.DataFrame(filtered_records)
+            logger.info(f"Filtered {len(final_df)} 'actual' records from shard.")
+            return final_df
+        except Exception as e:
+            logger.error(f"Error reading WildChat parquet: {e}")
+            # Fallback to streaming if parquet fails
+    
     logger.info(f"Streaming WildChat dataset: {config.WILDCHAT_DATASET}")
     try:
         ds = load_dataset(config.WILDCHAT_DATASET, split='train', streaming=True)
