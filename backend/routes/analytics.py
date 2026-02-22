@@ -29,13 +29,21 @@ def get_overview():
         query = db.query(Session).order_by(desc(Session.started_at))
         if completed_only:
             query = query.filter(Session.ended_at != None)
-            
-        sessions = query.all()
-        
+
+        all_sessions = query.all()
+
+        # Keep only the most recent session per (username, project_name)
+        seen = {}
+        for s in all_sessions:
+            key = (s.username, s.project_name)
+            if key not in seen:
+                seen[key] = s
+        sessions = list(seen.values())
+
         results = []
         for s in sessions:
             score = db.query(SessionScore).filter_by(session_id=s.session_id).first()
-            
+
             results.append({
                 "session_id": s.session_id,
                 "username": s.username,
