@@ -1,7 +1,8 @@
 from sqlalchemy import inspect
-from db import engine
+from db import engine, init_db
 
 def test_all_tables_exist():
+    init_db()
     inspector = inspect(engine)
     tables = inspector.get_table_names()
     print(f"Tables found: {tables}")

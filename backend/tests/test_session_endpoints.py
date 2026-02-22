@@ -1,62 +1,11 @@
-import pytest
-from unittest.mock import patch
-from flask import Flask
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+from helpers import start_session, make_session, get_events
 
-from base import Base
-from routes.session import session_bp
-import models  # ensure all tables are registered on Base
-
-
-@pytest.fixture
-def engine():
-    """Fresh in-memory SQLite DB per test."""
-    _engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(_engine)
-    yield _engine
-    Base.metadata.drop_all(_engine)
-
-
-@pytest.fixture
-def app(engine):
-    TestSession = sessionmaker(bind=engine)
-
-    def mock_get_db():
-        s = TestSession()
-        try:
-            yield s
-        finally:
-            s.close()
-
-    flask_app = Flask(__name__)
-    flask_app.register_blueprint(session_bp, url_prefix="/api/v1")
-    flask_app.config["TESTING"] = True
-
-    with patch("routes.session.get_db", mock_get_db):
-        yield flask_app
-
-
-@pytest.fixture
-def client(app):
-    return app.test_client()
-
-
-# --- helpers ---
-
-def start_session(client, username="alice", project_name="test"):
-    r = client.post("/api/v1/session/start", json={"username": username, "project_name": project_name})
-    return r
-
+# start_session is already imported from helpers, but we can override it if we want custom project_name etc.
+# Actually, the test file's start_session was slightly more specific.
+# In helpers.py, start_session exists.
 
 def get_session_id(client):
-    return start_session(client).get_json()["session_id"]
-
+    return make_session(client)
 
 # --- tests ---
 

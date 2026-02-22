@@ -10,11 +10,11 @@ events_bp = Blueprint("events", __name__)
 VALID_PANELS = {"editor", "chat", "filetree", "orientation", "implementation", "verification"}
 
 
+from diff import compute_edit_delta
+
 @events_bp.route("/events/editor", methods=["POST"])
 @require_session
 def editor_event(session, db):
-    from diff import compute_edit_delta
-
     data = request.get_json()
     file_id = data.get("file_id")
     content = data.get("content")

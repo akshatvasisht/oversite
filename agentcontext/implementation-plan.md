@@ -881,3 +881,31 @@ BACKEND: GET /analytics/session/:id  ───────────► FRONTE
 3. Are your test gates for this phase passing?
 
 **Rule: Nothing merges to `main` without passing its stated test gate.**
+
+# Post-Audit: Industry Standard & Demo Polish
+
+This phase addresses critical gaps identified in the Codebase Audit, focusing on **Logic Unification** and **Demo-Day Readiness**.
+
+## 1. Logic Unification (Training-Serving Skew)
+**Goal:** Ensure the model is being served the *exact* same features it was trained on.
+
+### [MODIFY] [features.py](file:///home/aksha/maddata/model/features.py)
+Move the comprehensive extraction logic from `backend/scoring.py` to this file. 
+- Refactor to accept raw event data (list of dictionaries) or DataFrames.
+- Should remain the single source of truth for all 15 features.
+
+### [MODIFY] [scoring.py](file:///home/aksha/maddata/backend/scoring.py)
+Remove local extraction logic.
+- Import `extract_c1_features` from `model.features`.
+- Map database results to the format expected by the unified extractor.
+
+## 2. Demo Polish & Handoff
+**Goal:** Professional branding and collaborative data.
+
+### [ACTION] DVC Remote Setup
+Configure a remote (e.g., shared drive or local-network peer) to allow team collaboration on model artifacts.
+
+## Verification Plan
+1. Run `backend/venv/bin/pytest backend/tests/test_scoring_components.py` to verify backend still scores correctly.
+2. Run `backend/venv/bin/pytest model/tests/test_features.py` to verify model track still extracts correctly.
+3. Compare vector outputs from both tracks on a sample session to ensure 0% skew.
