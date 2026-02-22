@@ -131,6 +131,14 @@ code, pre, .mono {
   color: var(--primary);
   opacity: 0.88;
   letter-spacing: -0.5px;
+  margin: 0 0 6px;
+}
+
+.login-tagline {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
   margin: 0 0 24px;
 }
 

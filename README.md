@@ -12,13 +12,13 @@
 ![Vitest](https://img.shields.io/badge/Vitest-1.0-729B1B?logo=vitest&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-# OverSite IDE
+# OverSite
 
-**Assess how they work, not just what they ship.**
+**AI allowed. Usage reported.**
 
-OverSite IDE is an AI-powered technical interview platform designed to evaluate candidate behavioral signals during algorithmic programming challenges. It provides a real-time, interactive environment where candidates code, debug, and interact with an AI assistant, all while their telemetry is recorded for multi-dimensional analysis.
+OverSite is an online assessment (OA) platform for technical hiring—similar to CodeSignal or HackerRank—with a key difference: **candidates can use AI during the assessment**, and the platform **reports on how they use it**. Recruiters get both correctness and behavioral insights: how candidates prompt the AI, review suggestions, and verify their work.
 
-Unlike traditional coding assessments that focus solely on completion, OverSite IDE leverages developer telemetry and prompt engineering analysis to produce deeper insights into a candidate's problem-solving process.
+Candidates code in a browser-based IDE with an embedded AI assistant. Sessions are scored for behavioral signals (e.g. over-reliant vs. strategic AI use) and summarized in recruiter-facing reports. OverSite is built for the reality that AI-assisted coding is the norm—assess and hire for how people work with AI, not in spite of it.
 
 ## Overview
 

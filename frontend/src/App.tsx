@@ -62,6 +62,7 @@ const LoginPage = () => {
       </div>
       <div className="login-screen-content">
         <p className="login-brand">OverSite</p>
+        <p className="login-tagline">AI allowed. Usage reported.</p>
         <Card className="login-card">
         <CardHeader>
           <CardTitle>Sign In</CardTitle>
