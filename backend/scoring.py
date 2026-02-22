@@ -13,21 +13,21 @@ from llm import GeminiClient
 logger = logging.getLogger(__name__)
 
 FEATURE_NAMES = [
-    'acceptance_rate',
-    'deliberation_time_avg',
-    'post_acceptance_edit_rate',
-    'verification_frequency',
-    'reprompt_ratio',
-    'chunk_acceptance_rate',
-    'passive_acceptance_rate',
-    'time_on_chunk_avg_ms',
-    'time_by_panel_editor_pct',
-    'time_by_panel_chat_pct',
-    'orientation_duration_s',
-    'iteration_depth',
-    'prompt_count_orientation_phase',
-    'prompt_count_implementation_phase',
-    'prompt_count_verification_phase'
+    'rate_acceptance',
+    'duration_deliberation_avg',
+    'rate_post_acceptance_edit',
+    'freq_verification',
+    'ratio_reprompt',
+    'rate_chunk_acceptance',
+    'rate_passive_acceptance',
+    'duration_chunk_avg_ms',
+    'pct_time_editor',
+    'pct_time_chat',
+    'duration_orientation_s',
+    'depth_iteration',
+    'count_prompt_orientation',
+    'count_prompt_implementation',
+    'count_prompt_verification'
 ]
 
 _MODELS_CACHE = {}
@@ -39,11 +39,14 @@ def load_models():
         return _MODELS_CACHE
 
     base_path = os.path.dirname(__file__)
-    # Try backend/models first, then fallback to model/models for development
-    paths = [
-        os.path.join(base_path, "models"),
+    
+    # Use environment variable if provided, fallback to standard shared location
+    artifacts_dir = os.environ.get(
+        "MODEL_ARTIFACTS_DIR", 
         os.path.join(os.path.dirname(base_path), "model", "models")
-    ]
+    )
+
+    paths = [artifacts_dir, os.path.join(base_path, "models")]
 
     for p in paths:
         c1_path = os.path.join(p, "component1_xgboost.joblib")
@@ -65,6 +68,11 @@ def extract_c1_features(session_id, db) -> np.ndarray:
     """
     Query the database and delegate to the unified model.features extractor.
     """
+    import sys
+    import os
+    maddata_dir = os.path.dirname(os.path.dirname(__file__))
+    if maddata_dir not in sys.path:
+        sys.path.append(maddata_dir)
     from model.features import extract_c1_features as unified_extractor
     
     session = db.query(Session).filter_by(session_id=session_id).first()

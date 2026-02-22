@@ -126,8 +126,8 @@ def test_c1_feature_vector_shape():
 ### BACKEND — Core Endpoints I (Session + Files)
 **Goal:** Session lifecycle + file management endpoints working.
 
-- [ ] `routes/session.py`:
-- [x] `POST /session/start` — create session, return `session_id`
+- [x] `routes/session.py`:
+  - [x] `POST /session/start` — create session, return `session_id`
   - [x] `POST /session/end` — set `ended_at`, **stub** scoring (returns 200, no pipeline yet)
   - [x] `PATCH /session/phase` — update phase, dual-write `panel_focus` event
   - [x] `GET /session/:id/trace` — return all events ordered by timestamp ASC
@@ -214,11 +214,11 @@ def test_specific_prompt_scores_higher():
 ### BACKEND — Core Endpoints II (AI Proxy + Events)
 **Goal:** Gemini proxy working; prompt/response dual-written; execute/panel/editor events logging.
 
-- [ ] Write `llm.py` — `GeminiClient` with:
+- [x] Write `llm.py` — `GeminiClient` with:
   - `assistant_call(prompt, history, system_prompt) -> str`
   - `judge_call(scores, excerpts, system_prompt) -> str` — separate system prompt, same `GEMINI_API_KEY`
-- [ ] `routes/ai.py` — `POST /ai/chat`: call Gemini, insert `ai_interactions`, dual-write `prompt` + `response` events, return `{ interaction_id, response, has_code_changes, shown_at }`
-- [ ] `routes/events.py`:
+- [x] `routes/ai.py` — `POST /ai/chat`: call Gemini, insert `ai_interactions`, dual-write `prompt` + `response` events, return `{ interaction_id, response, has_code_changes, shown_at }`
+- [x] `routes/events.py`:
   - `POST /events/execute` — dual-write `execute` event with `exit_code`
   - `POST /events/panel` — dual-write `panel_focus` event
   - `POST /events/editor` — compute `edit_delta` via `diff.py`, insert `editor_events`, dual-write `edit` event
@@ -304,7 +304,7 @@ def test_c1_val_accuracy():
 ### BACKEND — Suggestions Endpoints ⭐ Most critical backend task
 **Goal:** Full Cursor-style diff flow working end-to-end.
 
-- [ ] `routes/suggestions.py`:
+- [x] `routes/suggestions.py`:
   - `POST /suggestions` — take `{ interaction_id, file_id, original_content, proposed_content }`, run `parse_hunks()`, insert `ai_suggestions`, dual-write `suggestion_shown`, write pre-decision `editor_events` snapshot. Return `{ suggestion_id, shown_at, hunks[] }`. Validate: `proposed == original` → 400.
   - `POST /suggestions/:id/chunks/:idx/decide` — validate chunk exists + not decided; insert `chunk_decisions`; dual-write `chunk_accepted/rejected/modified`; if last hunk: set `resolved_at`, `all_accepted`, `any_modified`. **One transaction.**
   - `GET /suggestions/:id` — return suggestion + all decisions
@@ -415,11 +415,11 @@ def test_specific_prompt_scores_higher_than_vague():
 
 > **⚠️ Sync point with Model (Hour 4–5):** Share a JSON schema file — `{ "features": ["verification_frequency", "reprompt_ratio", ...] }` — both sides must use identical names and order. Do this before writing `extract_c1_features` in `scoring.py`.
 
-- [ ] Write `scoring.py` — `load_models()` at startup, graceful fallback if artifacts absent
-- [ ] `extract_c1_features(session_id, db) -> np.array` — queries `events`, `chunk_decisions`, `editor_events`, builds 15-feature vector matching `features.py` exactly
-- [ ] `run_component1(session_id, db) -> dict` — returns `structural_scores` + `feature_importances`
-- [ ] `extract_c2_features(session_id, db) -> list[dict]` — queries all `prompt` events
-- [ ] `run_component2(session_id, db) -> dict` — returns `prompt_quality_scores`
+- [x] Write `scoring.py` — `load_models()` at startup, graceful fallback if artifacts absent
+- [x] `extract_c1_features(session_id, db) -> np.array` — queries `events`, `chunk_decisions`, `editor_events`, builds 15-feature vector matching `features.py` exactly
+- [x] `run_component1(session_id, db) -> dict` — returns `structural_scores` + `feature_importances`
+- [x] `extract_c2_features(session_id, db) -> list[dict]` — queries all `prompt` events
+- [x] `run_component2(session_id, db) -> dict` — returns `prompt_quality_scores`
 
 **Test gate — `test_scoring_components.py`:**
 ```python
@@ -506,16 +506,16 @@ def test_label_thresholds():
 ### BACKEND — Scoring Engine II (Component 3 + Aggregation + Session End)
 **Goal:** Full pipeline runs at `POST /session/end`; `session_scores` row written.
 
-- [ ] `run_component3(session_id, db) -> dict` — queries `chunk_decisions`, applies heuristic
-- [ ] `aggregate_scores(c1, c2, c3, importances) -> (float, str)` — fallback to equal weights if no importances
-- [ ] Wire full pipeline into `POST /session/end`:
+- [x] `run_component3(session_id, db) -> dict` — queries `chunk_decisions`, applies heuristic
+- [x] `aggregate_scores(c1, c2, c3, importances) -> (float, str)` — fallback to equal weights if no importances
+- [x] Wire full pipeline into `POST /session/end`:
   1. `run_component1` (sync)
   2. `run_component2` (sync)
   3. `run_component3` (sync)
   4. `aggregate_scores` (sync)
   5. Write `session_scores` row atomically
   6. Dispatch async `threading.Thread` → Gemini judge → updates `llm_narrative` when done
-- [ ] Write `judge_prompt_builder(session_scores, events, db) -> str` — selects 3–5 diagnostic excerpts
+- [x] Write `judge_prompt_builder(session_scores, events, db) -> str` — selects 3–5 diagnostic excerpts
 
 **Test gate — `test_scoring_pipeline.py`:**
 ```python
@@ -568,11 +568,11 @@ def test_full_pipeline_on_seeded_session():
 ### MODEL — Integration Testing with Backend
 **Goal:** Artifacts load correctly in backend; feature extraction matches training.
 
-- [ ] Copy `models/component1_xgboost.joblib`, `models/component2_xgboost.joblib`, `models/c1_importances.json` to `backend/models/`
-- [ ] Run `test_scoring_components.py` with `SCORING_FALLBACK_MODE=false` — must use real artifacts
-- [ ] Verify `feature_importances` in `session_scores` is populated and sums to ~1.0
-- [ ] Run aggregation on 5 synthetic sessions — verify labels are sensible
-- [ ] Fix any feature name/order mismatch between `features.py` and `scoring.py`
+- [x] Copy `models/component1_xgboost.joblib`, `models/component2_xgboost.joblib`, `models/c1_importances.json` to `backend/models/`
+- [x] Run `test_scoring_components.py` with `SCORING_FALLBACK_MODE=false` — must use real artifacts
+- [x] Verify `feature_importances` in `session_scores` is populated and sums to ~1.0
+- [x] Run aggregation on 5 synthetic sessions — verify labels are sensible
+- [x] Fix any feature name/order mismatch between `features.py` and `scoring.py`
 
 **Test gate:**
 ```python
@@ -595,11 +595,11 @@ def test_no_fallback_on_complete_pipeline():
 ### BACKEND — Analytics Endpoints
 **Goal:** Dashboard + session detail return correct data shapes.
 
-- [ ] `routes/analytics.py`:
+- [x] `routes/analytics.py`:
   - `GET /analytics/session/:id` — live metrics + `session_scores` cache
   - `GET /analytics/overview` — aggregate across completed sessions, support `?completed_only=true`
   - `POST /analytics/session/:id/score` — manual re-score trigger
-- [ ] Implement all live metrics: `chunk_acceptance_rate`, `passive_acceptance_rate`, `time_on_chunk_avg_ms`, `verification_frequency`, `reprompt_ratio`, `time_by_panel`, `orientation_duration_s`, `iteration_depth`, `prompt_count_by_phase`
+- [x] Implement all live metrics: `chunk_acceptance_rate`, `passive_acceptance_rate`, `time_on_chunk_avg_ms`, `verification_frequency`, `reprompt_ratio`, `time_by_panel`, `orientation_duration_s`, `iteration_depth`, `prompt_count_by_phase`
 
 **Test gate — `test_analytics.py`:**
 ```python
@@ -909,3 +909,4 @@ Configure a remote (e.g., shared drive or local-network peer) to allow team coll
 1. Run `backend/venv/bin/pytest backend/tests/test_scoring_components.py` to verify backend still scores correctly.
 2. Run `backend/venv/bin/pytest model/tests/test_features.py` to verify model track still extracts correctly.
 3. Compare vector outputs from both tracks on a sample session to ensure 0% skew.
+4. Manual E2E test: login -> session -> AI prompt -> Accept/Reject diff -> Submit -> Admin view results.
