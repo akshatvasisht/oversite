@@ -1,0 +1,26 @@
+{
+  "session_id": "mock-session-strategic-19",
+  "ground_truth_profile": "strategic",
+  "c1_raw_events": {
+    "deliberation_time_avg": 42.83342027867626,
+    "verification_frequency": 3,
+    "time_by_panel_editor_pct": 0.7889455393834344,
+    "acceptance_rate": 0.6444411638666663
+  },
+  "c2_prompts": [
+    "The `BinaryTree` class lacks a balance check. Refactor it to enforce AVL balancing on insertion.",
+    "Line 42 throws a KeyError. Must catch the exception and fallback to DefaultDict."
+  ],
+  "c3_decisions": [
+    {
+      "decision": "modified",
+      "proposed_code": "def foo(): return 1",
+      "final_code": "def foo(x=1): return x"
+    },
+    {
+      "decision": "modified",
+      "proposed_code": "if x: pass",
+      "final_code": "if x and y:\n    do_work()"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "session_id": "mock-session-balanced-17",
+  "ground_truth_profile": "balanced",
+  "c1_raw_events": {
+    "deliberation_time_avg": 24.899779641832133,
+    "verification_frequency": 3,
+    "time_by_panel_editor_pct": 0.5494027623304516,
+    "acceptance_rate": 0.6713735309178319
+  },
+  "c2_prompts": [
+    "Add an insert method to the tree.",
+    "How do I fix this error?"
+  ],
+  "c3_decisions": [
+    {
+      "decision": "accepted",
+      "proposed_code": "def foo(): return 1",
+      "final_code": "def foo(): return 1"
+    },
+    {
+      "decision": "modified",
+      "proposed_code": "if x: pass",
+      "final_code": "if x: do_work()"
+    }
+  ]
+}

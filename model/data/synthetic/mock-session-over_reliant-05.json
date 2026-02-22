@@ -1,0 +1,28 @@
+{
+  "session_id": "mock-session-over_reliant-05",
+  "ground_truth_profile": "over_reliant",
+  "c1_raw_events": {
+    "deliberation_time_avg": 5.826052823092307,
+    "verification_frequency": 1,
+    "time_by_panel_editor_pct": 0.11970004951961455,
+    "acceptance_rate": 0.8939767422110639
+  },
+  "c2_prompts": [
+    "write a tree",
+    "it broke",
+    "fix it",
+    "try again"
+  ],
+  "c3_decisions": [
+    {
+      "decision": "accepted",
+      "proposed_code": "def foo(): return 1",
+      "final_code": "def foo(): return 1"
+    },
+    {
+      "decision": "accepted",
+      "proposed_code": "if x: pass",
+      "final_code": "if x: pass"
+    }
+  ]
+}
