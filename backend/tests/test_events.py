@@ -113,51 +113,47 @@ def test_execute_event_returns_201_and_event_id(client):
     sid = make_session(client)
     r = client.post(
         "/api/v1/events/execute",
-        json={"exit_code": 0, "output": "All tests passed"},
+        json={"entrypoint": "test.py", "files": [{"filename": "test.py", "content": "print(1)"}]},
         headers={"X-Session-ID": sid},
     )
-    assert r.status_code == 201
+    assert r.status_code == 200
     assert "event_id" in r.get_json()
-
+    assert r.get_json()["exit_code"] == 0
 
 def test_execute_event_dual_writes_execute_event(client):
     sid = make_session(client)
     client.post(
         "/api/v1/events/execute",
-        json={"exit_code": 1, "output": "Error: failed"},
+        json={"entrypoint": "test.py", "files": [{"filename": "test.py", "content": "print('hello')"}]},
         headers={"X-Session-ID": sid},
     )
     events = get_events(client, sid)
     event_types = [e["event_type"] for e in events]
     assert "execute" in event_types
 
-
-def test_execute_event_metadata_has_exit_code(client):
+def test_execute_event_metadata_has_entrypoint(client):
     sid = make_session(client)
     client.post(
         "/api/v1/events/execute",
-        json={"exit_code": 0},
+        json={"entrypoint": "main.py", "files": [{"filename": "main.py", "content": ""}]},
         headers={"X-Session-ID": sid},
     )
     events = get_events(client, sid)
     exec_event = next(e for e in events if e["event_type"] == "execute")
-    assert exec_event["metadata"]["exit_code"] == 0
+    assert exec_event["metadata"]["entrypoint"] == "main.py"
 
-
-def test_execute_event_missing_exit_code_returns_400(client):
+def test_execute_event_missing_entrypoint_returns_400(client):
     sid = make_session(client)
     r = client.post(
         "/api/v1/events/execute",
-        json={"output": "something"},
+        json={"files": []},
         headers={"X-Session-ID": sid},
     )
     assert r.status_code == 400
 
-
 def test_execute_event_missing_session_header_returns_401(client):
-    r = client.post("/api/v1/events/execute", json={"exit_code": 0})
+    r = client.post("/api/v1/events/execute", json={"entrypoint": "test.py", "files": []})
     assert r.status_code == 401
-
 
 # --- POST /events/panel ---
 

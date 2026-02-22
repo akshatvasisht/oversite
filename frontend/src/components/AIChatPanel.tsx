@@ -87,6 +87,7 @@ export default function AIChatPanel({
     const [history, setHistory] = useState<HistoryEntry[]>([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [retryPayload, setRetryPayload] = useState<{ text: string; history: HistoryEntry[] } | null>(null);
     const threadRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -101,19 +102,22 @@ export default function AIChatPanel({
         return id;
     };
 
-    const send = useCallback(async () => {
-        const text = input.trim();
+    const send = useCallback(async (retryText?: string, retryHistory?: HistoryEntry[]) => {
+        const text = retryText ?? input.trim();
         if (!text || loading || !sessionId) return;
 
-        setInput('');
+        if (!retryText) {
+            setInput('');
+            addMessage('user', text);
+        }
         setLoading(true);
-        addMessage('user', text);
+        setRetryPayload(null);
 
         if (pendingSuggestion) {
             onResolvePending();
         }
 
-        const outgoingHistory = [...history];
+        const outgoingHistory = retryHistory ?? [...history];
 
         try {
             const chatRes = await api.post('/ai/chat', {
@@ -165,6 +169,7 @@ export default function AIChatPanel({
                 }
             }
         } catch {
+            setRetryPayload({ text, history: outgoingHistory });
             addMessage('system', 'AI service unavailable. Please try again.');
         } finally {
             setLoading(false);
@@ -208,6 +213,14 @@ export default function AIChatPanel({
             {pendingSuggestion && (
                 <div className="chat-suggestion-banner">
                     Suggestion pending in editor — review the code block above.
+                </div>
+            )}
+
+            {retryPayload && (
+                <div style={{ padding: '0.5rem 1rem', background: 'var(--bg-muted)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'center' }}>
+                    <Button variant="secondary" size="sm" onClick={() => void send(retryPayload.text, retryPayload.history)}>
+                        Retry Connection
+                    </Button>
                 </div>
             )}
 

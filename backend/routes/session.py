@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 from db import get_db
-from schema import Session, Event
+from schema import Session, Event, File, EditorEvent
 from utils import write_event
 from services.scoring import trigger_scoring
 
@@ -47,10 +47,45 @@ def start_session():
         return jsonify({"error": "username is required"}), 400
 
     db = next(get_db())
+    db = next(get_db())
     try:
-        session_id = str(uuid.uuid4())
+        existing_session = (
+            db.query(Session)
+            .filter_by(username=username, project_name=project_name)
+            .filter(Session.ended_at == None)
+            .order_by(Session.started_at.desc())
+            .first()
+        )
+
         now = datetime.now(timezone.utc)
 
+        if existing_session:
+            files = db.query(File).filter_by(session_id=existing_session.session_id).all()
+            files_data = []
+            for f in files:
+                last_event = (
+                    db.query(EditorEvent)
+                    .filter_by(file_id=f.file_id)
+                    .order_by(EditorEvent.timestamp.desc())
+                    .first()
+                )
+                content = last_event.content if last_event else (f.initial_content or "")
+                files_data.append({
+                    "fileId": f.file_id,
+                    "filename": f.filename,
+                    "language": f.language,
+                    "content": content,
+                    "persisted": True
+                })
+
+            return jsonify({
+                "session_id": existing_session.session_id,
+                "started_at": existing_session.started_at.isoformat(),
+                "files": files_data,
+                "rehydrated": True 
+            }), 200
+
+        session_id = str(uuid.uuid4())
         session = Session(
             session_id=session_id,
             username=username,
@@ -127,7 +162,26 @@ def update_phase(session, db):
 
 @session_bp.route("/questions", methods=["GET"])
 def get_questions():
-    # Hardcoded for demo, but served via API
+    username = request.args.get("username")
+    status = "pending"
+
+    if username:
+        db = next(get_db())
+        try:
+            session = (
+                db.query(Session)
+                .filter_by(username=username, project_name="q1")
+                .order_by(Session.started_at.desc())
+                .first()
+            )
+            if session:
+                if session.ended_at:
+                    status = "submitted"
+                else:
+                    status = "in progress"
+        finally:
+            db.close()
+
     return jsonify([
         {
             "id": "q1",
@@ -137,7 +191,7 @@ def get_questions():
             "duration": "60 min",
             "difficulty": "Medium",
             "files": ["cart.py", "product.py", "discount.py"],
-            "status": "pending",
+            "status": status,
         }
     ]), 200
 

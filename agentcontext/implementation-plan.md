@@ -447,14 +447,14 @@ def test_c2_per_prompt_scores_populated():
 ### FRONTEND-A — Diff Overlay UI ⭐ Most complex frontend task
 **Goal:** Monaco renders green/red diff decorations per hunk; Accept/Reject buttons work.
 
-- [ ] On receiving `{ suggestion_id, hunks }`:
+- [x] On receiving `{ suggestion_id, hunks }`:
   - Apply Monaco decorations: green highlight for additions, red for removals, per hunk
   - Render Accept/Reject as overlay widgets at each hunk position
-- [ ] Accept → `POST /suggestions/:id/chunks/:idx/decide` with `{ decision: 'accepted', final_code: proposed_code, time_on_chunk_ms }`
-- [ ] Reject → same endpoint, `decision: 'rejected'`, `final_code: original_code`
-- [ ] Modified → user edits green text inline, then Accept → `decision: 'modified'`, `final_code: edited`
-- [ ] After all hunks decided → clear all decorations, update file content to final state
-- [ ] Track `shown_at` per suggestion + `decided_at` per chunk for `time_on_chunk_ms` computation
+- [x] Accept → `POST /suggestions/:id/chunks/:idx/decide` with `{ decision: 'accepted', final_code: proposed_code, time_on_chunk_ms }`
+- [x] Reject → same endpoint, `decision: 'rejected'`, `final_code: original_code`
+- [x] Modified → user edits green text inline, then Accept → `decision: 'modified'`, `final_code: edited`
+- [x] After all hunks decided → clear all decorations, update file content to final state
+- [x] Track `shown_at` per suggestion + `decided_at` per chunk for `time_on_chunk_ms` computation
 
 **Test gate:** Trigger a suggestion via chat. Green diff appears. Accept first hunk → decoration clears, content updates. Reject second hunk → reverts to original. No stale decorations remain after all hunks decided. ✅
 
@@ -553,11 +553,11 @@ def test_full_pipeline_on_seeded_session():
 ### FRONTEND-B — Full Integration Pass
 **Goal:** All pages wired to real backend endpoints; no hardcoded mock data.
 
-- [ ] Replace all stubs with real API calls: `GET /questions`, `GET /analytics/overview`, `GET /analytics/session/:id`, `POST /auth/login`
-- [ ] Loading + error states on all pages
-- [ ] Verify `X-Session-ID` header sent on all session-scoped requests
-- [ ] AI API failure → show retry button in chat panel
-- [ ] Network drop handling → reconnect modal
+- [x] Replace all stubs with real API calls: `GET /questions`, `GET /analytics/overview`, `GET /analytics/session/:id`, `POST /auth/login`
+- [x] Loading + error states on all pages
+- [x] Verify `X-Session-ID` header sent on all session-scoped requests
+- [x] AI API failure → show retry button in chat panel
+- [x] Network drop handling → reconnect modal
 
 **Test gate:** Full candidate flow end-to-end with a live backend: login → questions → start session → submit → status = Submitted. Full admin flow: login → dashboard → click candidate → see scores. ✅
 
@@ -629,11 +629,7 @@ def test_overview_filters_correctly():
 - [x] `SubmitModal.tsx` — "Are you sure?" + warning, Confirm/Cancel
 - [x] Confirm → `POST /session/end` → redirect to `/questions` with status updated to Submitted
 - [x] Panel focus tracking: `POST /events/panel` on every click into editor/chat/terminal/filetree
-<<<<<<< HEAD
 - [x] Phase progress bar in top bar (update on `PATCH /session/phase`)
-=======
-- [/] Phase progress bar in top bar (update on `PATCH /session/phase`)
->>>>>>> e3ef747 (feat: Implement auth persistence and role guards, harden backend resilience, and resolve frontend test failures.)
 
 **Test gate:** Click Submit → modal appears. Confirm → session ends, redirected to questions, card shows "Submitted". Events table has `panel_focus` events for editor and chat. ✅
 
@@ -872,15 +868,15 @@ This phase addresses critical gaps identified in the Codebase Audit, focusing on
 ## 1. Logic Unification (Training-Serving Skew)
 **Goal:** Ensure the model is being served the *exact* same features it was trained on.
 
-### [MODIFY] [features.py](file:///home/aksha/maddata/model/features.py)
+### [x] [features.py](file:///home/aksha/maddata/model/features.py)
 Move the comprehensive extraction logic from `backend/scoring.py` to this file. 
-- Refactor to accept raw event data (list of dictionaries) or DataFrames.
-- Should remain the single source of truth for all 15 features.
+- [x] Refactor to accept raw event data (list of dictionaries) or DataFrames.
+- [x] Should remain the single source of truth for all 15 features.
 
-### [MODIFY] [scoring.py](file:///home/aksha/maddata/backend/scoring.py)
+### [x] [scoring.py](file:///home/aksha/maddata/backend/scoring.py)
 Remove local extraction logic.
-- Import `extract_c1_features` from `model.features`.
-- Map database results to the format expected by the unified extractor.
+- [x] Import `extract_c1_features` from `model.features`.
+- [x] Map database results to the format expected by the unified extractor.
 
 ## 2. Demo Polish & Handoff
 **Goal:** Professional branding and collaborative data.

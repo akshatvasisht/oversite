@@ -1,4 +1,7 @@
+import os
 import uuid
+import tempfile
+import subprocess
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 from schema import File, EditorEvent
@@ -71,25 +74,63 @@ def editor_event(session, db):
 @require_session
 def execute_event(session, db):
     data = request.get_json()
-    exit_code = data.get("exit_code")
-    output = data.get("output", "")
-    file_id = data.get("file_id")
+    entrypoint = data.get("entrypoint")
+    files = data.get("files", [])
 
-    if exit_code is None:
-        return jsonify({"error": "exit_code is required"}), 400
+    if not entrypoint or not files:
+        return jsonify({"error": "entrypoint and files are required"}), 400
 
     event = write_event(
         db,
         session_id=session.session_id,
         actor="user",
         event_type="execute",
-        content=output,
-        metadata={"exit_code": exit_code, "file_id": file_id},
+        content=entrypoint,
+        metadata={"entrypoint": entrypoint},
     )
-
     db.commit()
 
-    return jsonify({"event_id": event.event_id}), 201
+    stdout_str = ""
+    stderr_str = ""
+    exit_code = 1
+
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for f in files:
+                fname = f.get("filename")
+                content = f.get("content", "")
+                if fname:
+                    filepath = os.path.join(tmpdir, fname)
+                    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+                    with open(filepath, "w") as out:
+                        out.write(content)
+
+            target_file = os.path.join(tmpdir, entrypoint)
+            
+            result = subprocess.run(
+                ["python", target_file],
+                cwd=tmpdir,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+            stdout_str = result.stdout
+            stderr_str = result.stderr
+            exit_code = result.returncode
+
+    except subprocess.TimeoutExpired:
+        stderr_str = "Execution timed out (10s limit)."
+    except Exception as e:
+        stderr_str = f"Execution engine error: {str(e)}"
+
+    return jsonify({
+        "status": "success",
+        "event_id": event.event_id,
+        "stdout": stdout_str,
+        "stderr": stderr_str,
+        "exit_code": exit_code
+    }), 200
 
 
 @events_bp.route("/events/panel", methods=["POST"])

@@ -15,8 +15,6 @@ code {
 
 
 /* Monaco Diff Overlay Styles */
-.diff-decoration-modified {
-}
 
 .diff-decoration-margin {
   border-left: 3px solid #2ea043;
@@ -53,13 +51,13 @@ code {
 
 .phase-btn:hover {
   color: var(--text-base);
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .phase-btn.active {
   background: var(--bg-hover);
   color: #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .session-timer {
@@ -67,7 +65,7 @@ code {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-base);
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   padding: 4px 10px;
   border-radius: 6px;
   border: 1px solid var(--border-color);
@@ -92,17 +90,84 @@ code {
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   animation: toast-in 0.3s ease-out;
   border-left: 4px solid var(--primary);
 }
 
-.toast-success { border-left-color: #2ea043; }
-.toast-error { border-left-color: #f85149; }
-.toast-warning { border-left-color: #d29922; }
-.toast-info { border-left-color: #58a6ff; }
+.toast-success {
+  border-left-color: #2ea043;
+}
+
+.toast-error {
+  border-left-color: #f85149;
+}
+
+.toast-warning {
+  border-left-color: #d29922;
+}
+
+.toast-info {
+  border-left-color: #58a6ff;
+}
 
 @keyframes toast-in {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Network Status Overlay */
+.network-status-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.network-status-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2.5rem;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  color: var(--text-base);
+  max-width: 400px;
+}
+
+.network-status-modal h2 {
+  margin-top: 0;
+  color: var(--text-brand);
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.network-status-modal p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.network-loader {
+  border: 3px solid var(--border);
+  border-top: 3px solid var(--text-brand);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  animation: spin 1s linear infinite;
+  margin: 1.5rem auto 0;
 }

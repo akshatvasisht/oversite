@@ -15,6 +15,7 @@ import { Input } from './components/ui/input';
 import { useAuth } from './hooks/useAuth';
 import { useAutosave } from './hooks/useAutosave';
 import { useSession } from './hooks/useSession';
+import NetworkStatus from './components/NetworkStatus';
 import './App.css';
 
 const LoginPage = () => {
@@ -84,18 +85,18 @@ const LoginPage = () => {
 };
 
 const QuestionsPage = () => {
-  const { role, logout } = useAuth();
+  const { role, userId, logout } = useAuth();
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (role !== 'candidate') return;
-    api.get('/questions')
+    api.get(`/questions?username=${userId}`)
       .then(res => setQuestions(res.data))
       .catch(err => console.error('Failed to fetch questions', err))
       .finally(() => setLoading(false));
-  }, [role]);
+  }, [role, userId]);
 
   if (role !== 'candidate') return <Navigate to="/login" replace />;
 
@@ -186,6 +187,7 @@ const SessionPage = () => {
     createFile,
     updateActiveContent,
     saveEditorEvent,
+    initialElapsedSeconds,
   } = useSession({
     routeSessionId: id ?? 'test',
     username: userId ?? 'candidate',
@@ -210,14 +212,37 @@ const SessionPage = () => {
     const cmd = `python ${name}`;
     setTerminalLines((prev) => [...prev, `> ${cmd}`]);
     try {
-      await api.post('/events/execute', { command: cmd, exit_code: 0, output: 'Execution finished.' });
-      setTerminalLines((prev) => [...prev, 'Execution finished.']);
-      showToast('Code executed successfully', 'success');
+      const execRes = await api.post('/events/execute', {
+        entrypoint: name,
+        files
+      });
+
+      const { stdout, stderr, exit_code } = execRes.data as { stdout: string; stderr: string; exit_code: number };
+
+      if (stdout) {
+        setTerminalLines((prev) => [...prev, ...stdout.split('\n').filter(l => l.trim() !== '')]);
+      }
+      if (stderr) {
+        setTerminalLines((prev) => [...prev, ...stderr.split('\n').filter(l => l.trim() !== '')]);
+      }
+
+      setTerminalLines((prev) => [...prev, `Process exited with code ${exit_code}`]);
+
+      if (exit_code === 0) {
+        showToast('Execution finished', 'success');
+      } else {
+        showToast('Execution failed', 'error');
+      }
+
     } catch {
-      setTerminalLines((prev) => [...prev, 'Execution finished.']);
-      showToast('Execution failed', 'error');
+      setTerminalLines((prev) => [...prev, 'System: Execution engine unavailable.']);
+      showToast('Engine unavailable', 'error');
     }
   };
+
+  useEffect(() => {
+    setElapsedSeconds(initialElapsedSeconds);
+  }, [initialElapsedSeconds]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -246,8 +271,9 @@ const SessionPage = () => {
     setSubmitting(true);
     try {
       await api.post('/session/end', { final_phase: 'verification' });
+      showToast('Submission Successful', 'success');
     } catch {
-      // best-effort — navigate regardless
+      showToast('Failed to submit session', 'error');
     } finally {
       setSubmitting(false);
       setShowSubmitModal(false);
@@ -472,6 +498,7 @@ function App() {
   return (
     <AuthProvider>
       <ToastProvider>
+        <NetworkStatus />
         <Router>
           <AppRoutes />
         </Router>
