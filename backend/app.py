@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 from db import init_db
 from routes.session import session_bp
 from routes.files import files_bp
+from routes.ai import ai_bp
+from routes.suggestions import suggestions_bp
+from routes.events import events_bp
 
 import logging
 
@@ -21,6 +24,9 @@ CORS(app)
 
 app.register_blueprint(session_bp, url_prefix="/api/v1")
 app.register_blueprint(files_bp, url_prefix="/api/v1")
+app.register_blueprint(ai_bp, url_prefix="/api/v1")
+app.register_blueprint(suggestions_bp, url_prefix="/api/v1")
+app.register_blueprint(events_bp, url_prefix="/api/v1")
 
 @app.route("/api/v1/health")
 def health() -> Any:
