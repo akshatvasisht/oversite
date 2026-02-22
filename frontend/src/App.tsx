@@ -348,6 +348,9 @@ const SessionPage = () => {
                 content={activeContent}
                 language={activeFile?.language ?? 'python'}
                 onChange={(value) => updateActiveContent(value ?? '')}
+                pendingSuggestion={pendingSuggestion}
+                onResolvePending={() => setPendingSuggestion(null)}
+                sessionId={sessionId}
               />
             </div>
             <div className="terminal-pane">

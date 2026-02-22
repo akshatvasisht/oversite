@@ -12,3 +12,17 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+
+/* Monaco Diff Overlay Styles */
+.diff-decoration-modified {
+}
+
+.diff-decoration-margin {
+  border-left: 3px solid #2ea043;
+}
+
+.hunk-action-widget {
+  z-index: 50;
+}
+

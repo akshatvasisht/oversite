@@ -42,6 +42,9 @@ def create_suggestion(session, db):
     if original_content == proposed_content:
         return jsonify({"error": "proposed_content must differ from original_content"}), 400
 
+    from services.diff import parse_hunks
+    hunks = parse_hunks(original_content, proposed_content)
+
     suggestion_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc)
 
@@ -52,7 +55,7 @@ def create_suggestion(session, db):
         file_id=file_id,
         original_content=original_content,
         proposed_content=proposed_content,
-        hunks_count=None,
+        hunks_count=len(hunks),
         shown_at=now,
     ))
 
@@ -81,6 +84,17 @@ def create_suggestion(session, db):
         "shown_at": now.isoformat(),
         "original_content": original_content,
         "proposed_content": proposed_content,
+        "hunks": [
+            {
+                "index": h.index,
+                "original_code": h.original_code,
+                "proposed_code": h.proposed_code,
+                "start_line": h.start_line,
+                "end_line": h.end_line,
+                "char_count_proposed": h.char_count_proposed,
+            }
+            for h in hunks
+        ]
     }), 201
 
 
