@@ -42,16 +42,20 @@ def chat(session, db):
     file_id = data.get("file_id")
     history = data.get("history", [])
     system_prompt = data.get("system_prompt", DEFAULT_SYSTEM_PROMPT)
+    context = data.get("context", "")
 
     if not prompt_text:
         return jsonify({"error": "prompt is required"}), 400
 
     phase = _current_phase(db, session.session_id)
 
+    # Prepend file context to the user prompt so Gemini can see the code
+    full_prompt = f"{context}\n\n{prompt_text}" if context else prompt_text
+
     # Call Gemini first — if it fails, write neither DB row
     try:
         client = GeminiClient()
-        response_text = client.assistant_call(prompt_text, history, system_prompt)
+        response_text = client.assistant_call(full_prompt, history, system_prompt)
     except Exception as e:
         return jsonify({"error": "AI service unavailable", "detail": str(e)}), 502
 
