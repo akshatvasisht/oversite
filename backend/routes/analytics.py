@@ -11,6 +11,14 @@ analytics_bp = Blueprint("analytics", __name__)
 @analytics_bp.route("/analytics/overview", methods=["GET"])
 @require_role("admin")
 def get_overview():
+    """
+    Returns a high-level summary of all candidate sessions.
+    ---
+    Input (Query Params):
+        - completed_only (bool, optional): Filter by ended_at != None. Defaults to false.
+    Output (200):
+        - sessions (list): Array of session summary objects including status and overall labels.
+    """
     db = next(get_db())
     try:
         completed_only = request.args.get("completed_only", "false").lower() == "true"
@@ -44,6 +52,17 @@ def get_overview():
 @analytics_bp.route("/analytics/session/<session_id>", methods=["GET"])
 @require_role("admin")
 def get_session_analytics(session_id):
+    """
+    Returns detailed structural and prompt-quality scores for a specific session.
+    ---
+    Input (Path):
+        - session_id (str): UUID of the target session.
+    Output (200):
+        - combined scores (obj): Structural scores (c1), prompt quality (c2), review (c3), and LLM narrative.
+        - live_metrics (dict): Current calculated feature values.
+    Errors:
+        - 404: Session not found
+    """
     db = next(get_db())
     try:
         session = db.query(Session).filter_by(session_id=session_id).first()
@@ -91,6 +110,18 @@ def get_session_analytics(session_id):
 @analytics_bp.route("/analytics/session/<session_id>/score", methods=["POST"])
 @require_role("admin")
 def force_score_session(session_id):
+    """
+    Manually triggers the scoring pipeline for an active session.
+    ---
+    Input (Path):
+        - session_id (str): UUID of the session to score.
+    Output (200):
+        - message (str): Success message.
+        - score_id (str): UUID of the generated score record.
+    Errors:
+        - 404: Session not found
+        - 500: Scoring pipeline error
+    """
     db = next(get_db())
     try:
         session = db.query(Session).filter_by(session_id=session_id).first()

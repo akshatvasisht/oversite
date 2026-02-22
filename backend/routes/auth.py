@@ -15,6 +15,20 @@ ROLES = {
 
 @auth_bp.route("/auth/login", methods=["POST"])
 def login():
+    """
+    Authenticates a user and returns a mock JWT token.
+    ---
+    Input (JSON):
+        - username (str): testuser1 or admin1
+        - password (str): password123 or admin123
+    Output (200):
+        - userId (str): Normalized username
+        - role (str): candidate or admin
+        - token (str): Mock JWT string
+    Errors:
+        - 400: Missing username or password
+        - 401: Invalid credentials
+    """
     data = request.get_json() or {}
     username = data.get("username", "")
     password = data.get("password", "")

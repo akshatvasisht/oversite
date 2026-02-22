@@ -39,6 +39,22 @@ def _current_phase(db, session_id: str):
 @ai_bp.route("/ai/chat", methods=["POST"])
 @require_session
 def chat(session, db):
+    """
+    Sends a prompt to the AI assistant and records the interaction.
+    ---
+    Input (JSON):
+        - prompt (str): User's message text
+        - file_id (str, optional): ID of the active file for context
+        - history (list, optional): Previous messages in the thread
+        - context (str, optional): Additional text context (e.g. file contents)
+    Output (201):
+        - interaction_id (str): UUID of the interaction
+        - response (str): AI's response text
+        - has_code_changes (bool): Whether the response contains a code block
+    Errors:
+        - 400: Missing prompt
+        - 502: AI service failure
+    """
     data = request.get_json()
     prompt_text = data.get("prompt")
     file_id = data.get("file_id")

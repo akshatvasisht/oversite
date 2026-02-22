@@ -20,7 +20,10 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # Load environment variables
-load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env.example'))
+dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+if not os.path.exists(dotenv_path):
+    dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env.example')
+load_dotenv(dotenv_path)
 
 app = Flask(__name__)
 CORS(app)

@@ -39,6 +39,20 @@ def require_session(f):
 
 @session_bp.route("/session/start", methods=["POST"])
 def start_session():
+    """
+    Initializes a new session or rehydrates an existing one.
+    ---
+    Input (JSON):
+        - username (str): Candidate name
+        - project_name (str): ID of the question/project
+    Output (200/201):
+        - session_id (str): UUID of the session
+        - started_at (str): ISO timestamp
+        - files (list, optional): Rehydrated file contents if resuming
+        - rehydrated (bool, optional): True if resuming
+    Errors:
+        - 400: Missing username
+    """
     data = request.get_json()
     username = data.get("username")
     project_name = data.get("project_name")
@@ -46,7 +60,6 @@ def start_session():
     if not username:
         return jsonify({"error": "username is required"}), 400
 
-    db = next(get_db())
     db = next(get_db())
     try:
         existing_session = (
@@ -119,6 +132,16 @@ def start_session():
 @session_bp.route("/session/end", methods=["POST"])
 @require_session
 def end_session(session, db):
+    """
+    Submits the session and triggers the backend scoring pipeline.
+    ---
+    Output (200):
+        - session_id (str): UUID of the ended session
+        - ended_at (str): ISO timestamp
+        - duration_seconds (int): Total active duration
+    Errors:
+        - 400: Session already ended
+    """
     if session.ended_at:
         return jsonify({"error": "Session already ended"}), 400
 
@@ -141,6 +164,17 @@ def end_session(session, db):
 @session_bp.route("/session/phase", methods=["PATCH"])
 @require_session
 def update_phase(session, db):
+    """
+    Updates the current interview phase state.
+    ---
+    Input (JSON):
+        - phase (str): orientation, implementation, or verification
+    Output (200):
+        - message (str): Success message
+        - phase (str): The updated phase
+    Errors:
+        - 400: Missing phase
+    """
     data = request.get_json()
     phase = data.get("phase")
     if not phase:
@@ -162,6 +196,14 @@ def update_phase(session, db):
 
 @session_bp.route("/questions", methods=["GET"])
 def get_questions():
+    """
+    Returns a list of available coding questions and user status.
+    ---
+    Input (Query Params):
+        - username (str, optional): To fetch per-user session status
+    Output (200):
+        - questions (list): Array of question objects with status (pending/in progress/submitted).
+    """
     username = request.args.get("username")
     status = "pending"
 
@@ -199,6 +241,17 @@ def get_questions():
 
 @session_bp.route("/session/<session_id>/trace", methods=["GET"])
 def get_trace(session_id):
+    """
+    Retrieves the full event trace for a specific session (Admin tool).
+    ---
+    Input (Path):
+        - session_id (str): UUID of the session
+    Output (200):
+        - session_id (str): UUID
+        - events (list): Chronological list of all logged events
+    Errors:
+        - 404: Session not found
+    """
     db = next(get_db())
     try:
         session = get_session_or_404(db, session_id)

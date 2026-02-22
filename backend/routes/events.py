@@ -18,6 +18,16 @@ from services.diff import compute_edit_delta
 @events_bp.route("/events/editor", methods=["POST"])
 @require_session
 def editor_event(session, db):
+    """
+    Logs an incremental code edit event to the database.
+    ---
+    Input (JSON):
+        - file_id (str): Target file
+        - content (str): New full content (converted to delta on backend)
+    Output (201):
+        - event_id (str): UUID
+        - recorded_at (str): ISO timestamp
+    """
     data = request.get_json()
     file_id = data.get("file_id")
     content = data.get("content")
@@ -73,6 +83,17 @@ def editor_event(session, db):
 @events_bp.route("/events/execute", methods=["POST"])
 @require_session
 def execute_event(session, db):
+    """
+    Executes candidate code in a temporary sandbox environment.
+    ---
+    Input (JSON):
+        - entrypoint (str): File to run (e.g. 'main.py')
+        - files (list): Array of {filename, content} to write into sandbox
+    Output (200):
+        - stdout (str): Execution output
+        - stderr (str): Error output or engine errors
+        - exit_code (int): 0 for success
+    """
     data = request.get_json()
     entrypoint = data.get("entrypoint")
     files = data.get("files", [])
@@ -136,6 +157,14 @@ def execute_event(session, db):
 @events_bp.route("/events/panel", methods=["POST"])
 @require_session
 def panel_event(session, db):
+    """
+    Logs metadata about UI panel focus changes (e.g. switching from chat to editor).
+    ---
+    Input (JSON):
+        - panel (str): target panel name
+    Output (201):
+        - event_id (str): UUID
+    """
     data = request.get_json()
     panel = data.get("panel")
 

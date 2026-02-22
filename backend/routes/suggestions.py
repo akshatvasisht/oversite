@@ -27,6 +27,20 @@ def _write_editor_snapshot(db, session_id, file_id, trigger, content, suggestion
 @suggestions_bp.route("/suggestions", methods=["POST"])
 @require_session
 def create_suggestion(session, db):
+    """
+    Records an AI-generated code suggestion and notifies the system.
+    ---
+    Input (JSON):
+        - interaction_id (str): The AI interaction that sparked this
+        - file_id (str): Target file
+        - original_content (str): Content before suggestion
+        - proposed_content (str): Content after suggestion
+    Output (201):
+        - suggestion_id (str): UUID
+        - hunks (list): Parsed differences for the UI to render
+    Errors:
+        - 400: Invalid content or IDs
+    """
     data = request.get_json()
     interaction_id = data.get("interaction_id")
     file_id = data.get("file_id")
@@ -101,6 +115,19 @@ def create_suggestion(session, db):
 @suggestions_bp.route("/suggestions/<suggestion_id>/resolve", methods=["POST"])
 @require_session
 def resolve_suggestion(session, db, suggestion_id):
+    """
+    Finalizes a suggestion state (Accept All / Reject All).
+    ---
+    Input (JSON):
+        - final_content (str): The version stored in the editor after resolution
+        - all_accepted (bool): Logic outcome
+        - any_modified (bool): Logic outcome
+    Output (200):
+        - resolved_at (str): ISO timestamp
+    Errors:
+        - 404: Suggestion not found
+        - 409: Already resolved
+    """
     suggestion = db.query(AISuggestion).filter_by(suggestion_id=suggestion_id).first()
 
     if not suggestion or suggestion.session_id != session.session_id:
@@ -152,6 +179,14 @@ def resolve_suggestion(session, db, suggestion_id):
 @suggestions_bp.route("/suggestions/<suggestion_id>", methods=["GET"])
 @require_session
 def get_suggestion(session, db, suggestion_id):
+    """
+    Retrieves metadata for a specific suggestion.
+    ---
+    Input (Path):
+        - suggestion_id (str): UUID
+    Output (200):
+        - suggestion object (json)
+    """
     suggestion = db.query(AISuggestion).filter_by(suggestion_id=suggestion_id).first()
 
     if not suggestion or suggestion.session_id != session.session_id:
@@ -175,6 +210,19 @@ def get_suggestion(session, db, suggestion_id):
 @suggestions_bp.route("/suggestions/<suggestion_id>/chunks/<int:chunk_index>/decide", methods=["POST"])
 @require_session
 def decide_chunk(session, db, suggestion_id, chunk_index):
+    """
+    Records a decision on a single hunk of code within a suggesting.
+    ---
+    Input (JSON):
+        - decision (str): accepted, rejected, or modified
+        - final_code (str): The code actually kept by the user
+        - time_on_chunk_ms (int): Duration spent reviewing this hunk
+    Output (201):
+        - decision_id (str): UUID
+    Errors:
+        - 400: Invalid decision or missing data
+        - 409: Already decided
+    """
     from schema import ChunkDecision
     
     suggestion = db.query(AISuggestion).filter_by(suggestion_id=suggestion_id).first()
