@@ -1,10 +1,13 @@
 import json
+import logging
 from flask import Blueprint, jsonify, request
 from sqlalchemy import desc
 from db import get_db
 from schema import Session, SessionScore, Event, AIInteraction, ChunkDecision
 from services.scoring import trigger_scoring, extract_behavioral_features, FEATURE_NAMES
 from routes.auth import require_role
+
+logger = logging.getLogger(__name__)
 
 analytics_bp = Blueprint("analytics", __name__)
 
@@ -94,13 +97,18 @@ def get_session_analytics(session_id):
             }
 
         # 2. Compute live metrics using the same feature extraction used in scoring
-        features_array = extract_behavioral_features(session_id, db)
-        live_metrics = {name: float(val) for name, val in zip(FEATURE_NAMES, features_array)}
+        try:
+            features_array = extract_behavioral_features(session_id, db)
+            live_metrics = {name: float(val) for name, val in zip(FEATURE_NAMES, features_array)}
+        except Exception as fe:
+            logger.warning(f"Feature extraction failed for {session_id}: {fe}")
+            live_metrics = {name: None for name in FEATURE_NAMES}
 
         return jsonify({
             **score_data,
             **live_metrics,
             "session_id": session_id,
+            "username": session.username,
             "status": "Submitted" if session.ended_at else "In Progress"
         }), 200
     finally:

@@ -403,9 +403,11 @@ export const useSession = ({
                 if (response.data?.rehydrated && response.data?.files) {
                     fetchedFiles = response.data.files;
                     if (response.data?.started_at) {
-                        const start = new Date(response.data.started_at).getTime();
-                        const now = Date.now();
-                        setInitialElapsedSeconds(Math.floor((now - start) / 1000));
+                        const raw: string = response.data.started_at;
+                        // Ensure the string is treated as UTC even if the backend strips timezone info
+                        const utcStr = raw.endsWith('Z') || raw.includes('+') ? raw : raw + 'Z';
+                        const elapsed = Math.max(0, Math.floor((Date.now() - new Date(utcStr).getTime()) / 1000));
+                        setInitialElapsedSeconds(elapsed);
                     }
                 }
             } catch {

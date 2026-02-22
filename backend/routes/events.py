@@ -126,14 +126,19 @@ def execute_event(session, db):
                     with open(filepath, "w") as out:
                         out.write(content)
 
-            target_file = os.path.join(tmpdir, entrypoint)
-            
+            is_test = os.path.basename(entrypoint).startswith("test_") or os.path.basename(entrypoint).endswith("_test.py")
+            if is_test:
+                cmd = ["python", "-m", "pytest", entrypoint, "-v"]
+            else:
+                target_file = os.path.join(tmpdir, entrypoint)
+                cmd = ["python", target_file]
+
             result = subprocess.run(
-                ["python", target_file],
+                cmd,
                 cwd=tmpdir,
                 capture_output=True,
                 text=True,
-                timeout=10
+                timeout=30
             )
 
             stdout_str = result.stdout

@@ -207,38 +207,29 @@ const SessionPage = () => {
     void api.post('/events/panel', { panel });
   };
 
-  const runCode = async (): Promise<void> => {
-    const name = activeFile?.filename ?? 'main.py';
-    const cmd = `python ${name}`;
-    setTerminalLines((prev) => [...prev, `> ${cmd}`]);
+  const execute = async (entrypoint: string): Promise<void> => {
+    setTerminalLines((prev) => [...prev, `> python ${entrypoint}`]);
     try {
-      const execRes = await api.post('/events/execute', {
-        entrypoint: name,
-        files
-      });
-
+      const execRes = await api.post('/events/execute', { entrypoint, files });
       const { stdout, stderr, exit_code } = execRes.data as { stdout: string; stderr: string; exit_code: number };
 
-      if (stdout) {
-        setTerminalLines((prev) => [...prev, ...stdout.split('\n').filter(l => l.trim() !== '')]);
-      }
-      if (stderr) {
-        setTerminalLines((prev) => [...prev, ...stderr.split('\n').filter(l => l.trim() !== '')]);
-      }
-
+      if (stdout) setTerminalLines((prev) => [...prev, ...stdout.split('\n').filter(l => l.trim() !== '')]);
+      if (stderr) setTerminalLines((prev) => [...prev, ...stderr.split('\n').filter(l => l.trim() !== '')]);
       setTerminalLines((prev) => [...prev, `Process exited with code ${exit_code}`]);
 
       if (exit_code === 0) {
-        showToast('Execution finished', 'success');
+        showToast('Ran successfully ✓', 'success');
       } else {
         showToast('Execution failed', 'error');
       }
-
     } catch {
       setTerminalLines((prev) => [...prev, 'System: Execution engine unavailable.']);
       showToast('Engine unavailable', 'error');
     }
   };
+
+  const runCode = (): Promise<void> => execute(activeFile?.filename ?? 'main.py');
+  const runTests = (): Promise<void> => execute('tests/test_cart.py');
 
   useEffect(() => {
     setElapsedSeconds(initialElapsedSeconds);
@@ -350,6 +341,13 @@ const SessionPage = () => {
               onClick={(e) => { e.stopPropagation(); void runCode(); }}
             >
               ▶ Run
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); void runTests(); }}
+            >
+              ✓ Test
             </Button>
             <Button
               size="sm"

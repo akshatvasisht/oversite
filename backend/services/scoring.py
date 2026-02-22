@@ -248,14 +248,19 @@ def trigger_scoring(session_id, db):
         import uuid
         score_id = str(uuid.uuid4())
         
+        # Store only numeric/scalar fields — strip features array and booleans
+        c1_display = {"score": c1.get("score", 0), "label": c1.get("label", "")}
+        c2_display = {"score": c2.get("score", 0), "per_prompt_avg": round(sum(c2.get("per_prompt", [0])) / max(len(c2.get("per_prompt", [1])), 1), 2)}
+        c3_display = {"score": c3.get("score", 0)}
+
         # Prepare scores serialization
         score_record = SessionScore(
             score_id=score_id,
             session_id=session_id,
             computed_at=datetime.now(timezone.utc),
-            structural_scores=json.dumps(c1),
-            prompt_quality_scores=json.dumps(c2),
-            review_scores=json.dumps(c3),
+            structural_scores=json.dumps(c1_display),
+            prompt_quality_scores=json.dumps(c2_display),
+            review_scores=json.dumps(c3_display),
             overall_label=label,
             weighted_score=weighted_score,
             fallback_components=json.dumps(["c1"] if c1.get("fallback") else [])
