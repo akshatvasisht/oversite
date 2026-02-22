@@ -127,14 +127,14 @@ def test_c1_feature_vector_shape():
 **Goal:** Session lifecycle + file management endpoints working.
 
 - [ ] `routes/session.py`:
-  - `POST /session/start` — create session, return `session_id`
-  - `POST /session/end` — set `ended_at`, **stub** scoring (returns 200, no pipeline yet)
-  - `PATCH /session/phase` — update phase, dual-write `panel_focus` event
-  - `GET /session/:id/trace` — return all events ordered by timestamp ASC
-- [ ] `routes/files.py`:
-  - `POST /files` — insert into `files`, dual-write `file_open` event, write initial `editor_events` snapshot
-  - `POST /files/:id/save` — compute delta, insert `editor_events`
-  - `POST /events/file` — dual-write `file_open` or `file_close`
+- [x] `POST /session/start` — create session, return `session_id`
+  - [x] `POST /session/end` — set `ended_at`, **stub** scoring (returns 200, no pipeline yet)
+  - [x] `PATCH /session/phase` — update phase, dual-write `panel_focus` event
+  - [x] `GET /session/:id/trace` — return all events ordered by timestamp ASC
+- [x] `routes/files.py`:
+  - [x] `POST /files` — insert into `files`, dual-write `file_open` event, write initial `editor_events` snapshot
+  - [x] `POST /files/:id/save` — compute delta, insert `editor_events`
+  - [x] `POST /events/file` — dual-write `file_open` or `file_close`
 
 **Test gate — `test_session_endpoints.py`:**
 ```python
@@ -162,11 +162,11 @@ def test_file_creation_dual_writes():
 ### FRONTEND-A — Monaco Editor Shell
 **Goal:** Editor loads, content editable, tabs work.
 
-- [ ] `MonacoEditorWrapper.tsx` — wraps `@monaco-editor/react`, props: `{ fileId, content, language, onChange }`
-- [ ] `FileExplorer.tsx` — list of files, click to switch active file
-- [ ] `useSession` hook — manages `{ sessionId, files, activeFileId, activeContent }`
-- [ ] On mount: `POST /session/start` → store `sessionId` in context
-- [ ] On file select: `POST /files` if new, render content in Monaco
+- [x] `MonacoEditorWrapper.tsx` — wraps `@monaco-editor/react`, props: `{ fileId, content, language, onChange }`
+- [x] `FileExplorer.tsx` — list of files, click to switch active file
+- [x] `useSession` hook — manages `{ sessionId, files, activeFileId, activeContent }`
+- [x] On mount: `POST /session/start` → store `sessionId` in context
+- [x] On file select: `POST /files` if new, render content in Monaco
 
 **Test gate:** Load `/session/test`, click a filename, Monaco switches content. No console errors. ✅
 
@@ -175,9 +175,9 @@ def test_file_creation_dual_writes():
 ### FRONTEND-B — Login + Auth Flow
 **Goal:** Login posts to backend stub, token stored, role redirect works.
 
-- [ ] `LoginPage.tsx` — username + password form, calls `POST /auth/login`
-- [ ] On success: store role in `AuthContext`, redirect to `/questions` (candidate) or `/admin` (admin)
-- [ ] Logout clears context, redirects to `/login`
+- [x] `LoginPage.tsx` — username + password form, calls `POST /auth/login`
+- [x] On success: store role in `AuthContext`, redirect to `/questions` (candidate) or `/admin` (admin)
+- [x] Logout clears context, redirects to `/login`
 
 > **⚠️ Handoff needed from Backend by Hour 2:** `POST /auth/login` stub returning `{ userId, role }` — hardcode `admin`/`admin` → admin role, anything else → candidate.
 
@@ -386,11 +386,11 @@ def test_modified_decision_stores_edited_code():
 ### MODEL — Component 2 Training
 **Goal:** Xgboost prompt quality scorer trained, per-prompt scores computable.
 
-- [ ] Build feature matrix from WildChat filtered subset
-- [ ] Train Xgboost; evaluate on held-out WildChat conversations
-- [ ] `joblib.dump(model, 'models/component2_xgboost.joblib')`
-- [ ] Write `score_prompts(prompt_list) -> list[float]` — callable by backend scoring pipeline
-- [ ] **Optional:** load CodeBERT embeddings and concatenate — skip if >30min
+- [x] Build feature matrix from WildChat filtered subset
+- [x] Train Xgboost; evaluate on held-out WildChat conversations
+- [x] `joblib.dump(model, 'models/component2_xgboost.joblib')`
+- [x] Write `score_prompts(prompt_list) -> list[float]` — callable by backend scoring pipeline
+- [ ] **Optional:** load CodeBERT embeddings and concatenate — skip if >30min (SKIPPED: To prevent general knowledge overfitting)
 
 **Test gate — `test_component2.py`:**
 ```python

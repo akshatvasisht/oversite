@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import joblib
 from xgboost import XGBClassifier
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
 # Add parent directory to path to import local modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -93,6 +93,10 @@ def train_component1():
     logger.info("Classification Report:\n" + classification_report(
         y_val, y_pred, target_names=["over_reliant", "balanced", "strategic"]
     ))
+    
+    cm = confusion_matrix(y_val, y_pred)
+    logger.info(f"Confusion Matrix:\n{cm}")
+
     
     # Calculate majority class baseline
     baseline_acc = pd.Series(y_val).value_counts(normalize=True).max()

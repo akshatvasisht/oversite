@@ -11,8 +11,8 @@
 | Step | Task | Status |
 |------|------|--------|
 | 1 | Schema + DB init (`models.py`, `db.py`) | ✅ Done |
-| 2 | Session + file routes (`routes/session.py`, `routes/files.py`, auth stub) | 🔄 In progress |
-| 3 | `diff.py` — unified diff + hunk parser | ⬜ Pending |
+| 2 | Session + file routes (`routes/session.py`, `routes/files.py`, auth stub) | ✅ Done |
+| 3 | `diff.py` — unified diff + hunk parser | ✅ Done |
 | 4 | `llm.py` — Gemini client (assistant + judge) | ⬜ Pending |
 | 5 | `POST /ai/chat` — Gemini proxy + dual-write | ⬜ Pending |
 | 6 | `POST /suggestions` — store original/proposed snapshots + dual-write | ⬜ Pending |

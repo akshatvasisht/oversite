@@ -22,7 +22,7 @@ class ModelConfig:
     C1_LEARNING_RATE: float = 0.1
     
     # Data Loading
-    WILDCHAT_MAX_RECORDS: int = 500
+    WILDCHAT_MAX_RECORDS: int = 5000
     WILDCHAT_MIN_TURNS: int = 3
 
 config = ModelConfig()
