@@ -3,16 +3,12 @@
 ![React](https://img.shields.io/badge/React-19.2-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.4-007ACC?logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-5.0-646CFF?logo=vite&logoColor=white)
-![Gemini](https://img.shields.io/badge/Gemini-Pro-8E75B2?logo=google-gemini&logoColor=white)
-![Git LFS](https://img.shields.io/badge/Git_LFS-3.4-black?logo=git-lfs&logoColor=white)
 ![XGBoost](https://img.shields.io/badge/XGBoost-2.0-EB214C?logo=xgboost&logoColor=white)
 ![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-1.4-F7931E?logo=scikit-learn&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-3.0-07405E?logo=sqlite&logoColor=white)
 ![Pytest](https://img.shields.io/badge/Pytest-8.0-0A9EDC?logo=pytest&logoColor=white)
 ![Vitest](https://img.shields.io/badge/Vitest-1.0-729B1B?logo=vitest&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green)
-
-# OverSite
+![Event](https://img.shields.io/badge/Submission-MadData_2026-FFD700)
 
 **AI allowed. Usage reported.**
 
