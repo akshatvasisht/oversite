@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import type { SessionFile } from '../hooks/useSession';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
 
 interface FileExplorerProps {
     files: SessionFile[];
@@ -24,45 +26,31 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     };
 
     return (
-        <aside
-            style={{
-                width: '240px',
-                border: '1px solid #d4d4d8',
-                borderRadius: '8px',
-                padding: '12px',
-                background: '#fafafa',
-            }}
-        >
-            <h3 style={{ margin: '0 0 10px' }}>Files</h3>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                <input
+        <aside className="file-explorer">
+            <h3 className="file-explorer-title">Files</h3>
+            <div className="file-create-row">
+                <Input
                     type="text"
                     value={draftFilename}
                     onChange={(event) => setDraftFilename(event.target.value)}
                     placeholder="utils.py"
-                    style={{ flex: 1, padding: '6px 8px' }}
+                    className="file-create-input"
                 />
-                <button type="button" onClick={() => { void handleCreate(); }}>
+                <Button size="sm" variant="secondary" onClick={() => { void handleCreate(); }} className="file-create-button">
                     Add
-                </button>
+                </Button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div className="file-list">
                 {files.map((file) => (
-                    <button
+                    <Button
                         key={file.fileId}
-                        type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => { void onSelectFile(file.fileId); }}
-                        style={{
-                            textAlign: 'left',
-                            borderRadius: '6px',
-                            padding: '8px',
-                            cursor: 'pointer',
-                            border: file.fileId === activeFileId ? '1px solid #1d4ed8' : '1px solid #e4e4e7',
-                            background: file.fileId === activeFileId ? '#eff6ff' : '#ffffff',
-                        }}
+                        className={`file-item ${file.fileId === activeFileId ? 'active' : ''}`}
                     >
                         {file.filename}
-                    </button>
+                    </Button>
                 ))}
             </div>
         </aside>
