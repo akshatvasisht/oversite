@@ -1,4 +1,4 @@
-# MadData — Backend Implementation Plan
+# OverSite — Backend Implementation Plan
 
 > **Stack:** Python 3.11 · Flask · SQLite · SQLAlchemy
 > **Server:** `localhost:8000`
@@ -537,6 +537,6 @@ backend/
 │   ├── component1_xgboost.joblib      # From model team (optional, fallback if absent)
 │   ├── component2_lgbm.joblib         # From model team (optional, fallback if absent)
 │   └── component2_codebert_embeddings/
-├── .env                    # GEMINI_API_KEY, FLASK_SECRET_KEY, DATABASE_URL
+├── .env                    # GEMINI_API_KEY, FLASK_SECRET_KEY, DATABASE_URL="sqlite:///../oversite.db"
 └── requirements.txt
 ```

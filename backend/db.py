@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # Load DATABASE_URL from environment or use default
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///maddata.db")
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///oversite.db")
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

@@ -43,8 +43,6 @@ export function DiffOverlay({
     pendingSuggestion,
     onResolvePending,
     onFileUpdate,
-    activeFileId,
-    sessionId,
 }: DiffOverlayProps) {
     const { showToast } = useToast();
     const [portals, setPortals] = useState<React.ReactPortal[]>([]);

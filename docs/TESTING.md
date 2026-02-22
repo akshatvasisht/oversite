@@ -1,7 +1,7 @@
 # Testing Guidelines
 
 ## Strategy
-MadData IDE uses a multi-layered testing strategy to ensure reliability across the candidate experience and the scoring engine. We prioritize **Integration Tests** for backend API endpoints and **Unit Tests** for shared logic in the `model/` package.
+OverSite IDE uses a multi-layered testing strategy to ensure reliability across the candidate experience and the scoring engine. We prioritize **Integration Tests** for backend API endpoints and **Unit Tests** for shared logic in the `model/` package.
 
 ### Test Types
 * **Backend Suite (Pytest):** Covers route controllers, database logic, and feature extraction.
@@ -34,7 +34,7 @@ python demo_smoke_test.py
 
 ### Mocking Gemini AI
 To avoid external dependencies and API costs during testing, use the `MagicMock` pattern for `GeminiClient`. See `backend/tests/test_ai_endpoints.py` for examples.
-* **Integration Tests:** Use a test database (`test_maddata.db`) by setting `DB_URL` in the environment.
+* **Integration Tests:** Use a test database (`test_oversite.db`) by setting `DB_URL` in the environment.
 * **Fallback Mode:** Setting `SCORING_FALLBACK_MODE=true` allows testing the scoring pipeline without requiring ML artifacts.
 
 ## CI/CD Standards

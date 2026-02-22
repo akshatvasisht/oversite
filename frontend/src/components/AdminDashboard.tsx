@@ -47,7 +47,7 @@ export default function AdminDashboard() {
         <div className="screen admin-screen">
             <header className="dashboard-topbar">
                 <div>
-                    <p className="eyebrow">MadData</p>
+                    <p className="eyebrow">OverSite</p>
                     <h1>Admin Dashboard</h1>
                 </div>
                 <Button variant="outline" onClick={logout}>Logout</Button>

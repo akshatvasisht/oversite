@@ -1,6 +1,6 @@
 CONTEXT
 -------
-MadData is an AI-assisted coding interview platform. Candidates solve algorithmic
+OverSite is an AI-assisted coding interview platform. Candidates solve algorithmic
 problems inside a custom IDE that includes an AI coding assistant (Gemini). The
 platform records every action taken during the session and scores candidates across
 three dimensions (scale 1-5):

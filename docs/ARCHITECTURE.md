@@ -1,6 +1,6 @@
 # Architecture Documentation
 
-This document details the architectural decisions, system components, and data flow for MadData IDE.
+This document details the architectural decisions, system components, and data flow for OverSite IDE.
 
 ---
 
@@ -13,44 +13,10 @@ This document details the architectural decisions, system components, and data f
 * **X-Session-ID:** A unique identifier for an active interview session, used for authentication and logging.
 
 ## System Overview
-MadData IDE is built as a **Client-Server** application:
+OverSite IDE is built as a **Client-Server** application:
 * **Frontend**: A React Single Page Application (SPA) that provides a VS Code-like environment for candidates.
 * **Backend**: A Flask REST API that manages session state, logs candidate telemetry, and integrates with LLMs for real-time assistance.
 * **Database**: SQLite (SQLAlchemy) for persistence, storing sessions, events, and AI interactions.
-
-```mermaid
-graph TD
-    subgraph Frontend ["Frontend (React SPA)"]
-        Monaco["Monaco Editor"]
-        Chat["AI Chat Panel"]
-        Telemetry["Telemetry Service"]
-    end
-
-    subgraph Backend ["Backend (Flask REST API)"]
-        Routes["API Routes"]
-        Scoring["Scoring Engine"]
-        LLM["Gemini Service"]
-    end
-
-    subgraph Persistence ["Persistence (SQLite)"]
-        DB[(SQLAlchemy DB)]
-    end
-
-    subgraph DataScience ["ML Core (model/package)"]
-        Features["Feature Extraction"]
-        Models["XGBoost Models"]
-    end
-
-    Monaco <--> Telemetry
-    Chat <--> Routes
-    Telemetry --> Routes
-    Routes <--> DB
-    Scoring <--> DB
-    Routes <--> LLM
-    Scoring --> Features
-    Features --> Models
-    LLM --> Scoring
-```
 
 ## Directory Structure
 ```

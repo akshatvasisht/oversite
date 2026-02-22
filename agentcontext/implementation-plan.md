@@ -1,4 +1,4 @@
-# MadData — 10-Hour Implementation Plan
+# OverSite — 10-Hour Implementation Plan
 
 > **Stack:** Python/Flask/SQLite (Backend) · React/Monaco (Frontend) · XGBoost (Model) · Gemini Flash (LLM)
 > **Team:** 1× Model · 1× Backend · 1× Frontend-A (IDE/session) · 1× Frontend-B (Admin/auth)
@@ -77,7 +77,7 @@ def test_all_tables_exist():
 ### FRONTEND-A — Project Scaffold
 **Goal:** React app boots, Monaco renders, routing exists.
 
-- [x] `npx create-react-app maddata --template typescript` (or Vite)
+- [x] `npx create-react-app oversite --template typescript` (or Vite)
 - [x] Install: `@monaco-editor/react`, `axios`, `react-router-dom`
 - [x] Route skeleton: `/session/:id` → `SessionPage` placeholder
 - [x] Verify Monaco renders with a hardcoded Python string

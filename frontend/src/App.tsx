@@ -16,7 +16,10 @@ import { useAuth } from './hooks/useAuth';
 import { useAutosave } from './hooks/useAutosave';
 import { useSession } from './hooks/useSession';
 import NetworkStatus from './components/NetworkStatus';
+import LetterGlitch from './components/LetterGlitch';
 import './App.css';
+
+const LOGIN_GLITCH_COLORS = ['#2a2618', '#b8860b', '#f0c14b', '#5c4a1a', '#e6b422'];
 
 const LoginPage = () => {
   const { login, isAuthenticated, role } = useAuth();
@@ -48,11 +51,21 @@ const LoginPage = () => {
 
   return (
     <div className="login-screen">
-      <p className="login-brand">MadData</p>
-      <Card className="login-card">
+      <div className="login-screen-bg" aria-hidden>
+        <LetterGlitch
+          glitchColors={LOGIN_GLITCH_COLORS}
+          glitchSpeed={50}
+          centerVignette
+          outerVignette={false}
+          smooth
+        />
+      </div>
+      <div className="login-screen-content">
+        <p className="login-brand">OverSite</p>
+        <Card className="login-card">
         <CardHeader>
           <CardTitle>Sign In</CardTitle>
-          <CardDescription>Use your assigned test account to continue.</CardDescription>
+          <CardDescription>Sign in to your account to continue.</CardDescription>
         </CardHeader>
         <CardContent>
           <form
@@ -67,21 +80,14 @@ const LoginPage = () => {
               id="username"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
-              placeholder="candidate1 or admin1"
+              placeholder="Enter your username"
+              autoComplete="username"
             />
             <Button type="submit">Sign In</Button>
           </form>
-          <div className="demo-divider">quick access</div>
-          <div className="demo-row">
-            <Button type="button" variant="secondary" onClick={() => signInAs('candidate1')}>
-              Demo Candidate
-            </Button>
-            <Button type="button" variant="secondary" onClick={() => signInAs('admin')}>
-              Demo Admin
-            </Button>
-          </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };
@@ -118,7 +124,7 @@ const QuestionsPage = () => {
     <div className="screen dashboard-screen">
       <div className="dashboard-topbar">
         <div>
-          <p className="eyebrow">MadData</p>
+          <p className="eyebrow">OverSite</p>
           <h1>Your Assessments</h1>
         </div>
         <Button type="button" variant="outline" onClick={logout}>Logout</Button>
@@ -340,7 +346,7 @@ const SessionPage = () => {
       <div className="ide-wrapper">
         {/* Top nav bar */}
         <div className="session-topbar">
-          <span className="session-topbar-brand">MadData</span>
+          <span className="session-topbar-brand">OverSite</span>
           <span className="session-topbar-sep">›</span>
           <span className="session-topbar-title">Session {id}</span>
 

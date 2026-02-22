@@ -1,4 +1,4 @@
-# MadData IDE API Documentation
+# OverSite IDE API Documentation
 
 ## Protocol: REST (JSON)
 

@@ -9,7 +9,7 @@ def print_status(check_name, status, details=""):
     print(f"{color} {check_name:<30} {details}")
 
 def run_healthcheck():
-    print("\n=== MadData Pre-Flight Health Check ===\n")
+    print("\n=== OverSite Pre-Flight Health Check ===\n")
     
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     env_path = os.path.join(base_dir, ".env")
@@ -36,7 +36,7 @@ def run_healthcheck():
         sys.exit(1)
         
     # 3. Check Database
-    db_path = os.getenv("DATABASE_URL", "sqlite:///maddata.db").replace("sqlite:///", "")
+    db_path = os.getenv("DATABASE_URL", "sqlite:///oversite.db").replace("sqlite:///", "")
     if db_path.startswith('/'): # Absolute path
         db_full_path = db_path
     else:

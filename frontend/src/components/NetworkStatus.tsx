@@ -22,7 +22,7 @@ export default function NetworkStatus() {
         <div className="network-status-overlay">
             <div className="network-status-modal">
                 <h2>Connection Lost</h2>
-                <p>We are trying to reconnect to the MadData network. Please wait...</p>
+                <p>We are trying to reconnect to the OverSite network. Please wait...</p>
                 <div className="network-loader" />
             </div>
         </div>
