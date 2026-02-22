@@ -629,7 +629,60 @@ code, pre, .mono {
   overflow-x: auto;
   white-space: pre;
   color: #c9d1d9;
-  margin: 4px 0;
+  margin: 6px 0;
+}
+
+.chat-inline-code {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-size: 11px;
+  color: #c9d1d9;
+}
+
+.chat-markdown {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.chat-markdown p {
+  margin: 0 0 6px;
+}
+
+.chat-markdown p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-markdown ul,
+.chat-markdown ol {
+  margin: 4px 0 6px;
+  padding-left: 18px;
+}
+
+.chat-markdown li {
+  margin-bottom: 2px;
+}
+
+.chat-markdown strong {
+  font-weight: 600;
+  color: #e5e5e5;
+}
+
+.chat-markdown em {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.chat-markdown h1,
+.chat-markdown h2,
+.chat-markdown h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 8px 0 4px;
+  color: var(--text-primary);
 }
 
 .chat-ts {

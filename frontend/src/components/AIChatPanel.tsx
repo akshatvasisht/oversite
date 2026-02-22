@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import api from '../api';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
@@ -46,31 +47,26 @@ function extractProposedCode(text: string): string | null {
     return match ? match[1].trim() : null;
 }
 
-/** Split message text into alternating prose / code-block segments */
-function parseSegments(text: string): { type: 'text' | 'code'; content: string }[] {
-    const parts = text.split(/(```[\w]*\n?[\s\S]*?```)/g);
-    return parts
-        .filter((p) => p.length > 0)
-        .map((p) => {
-            const codeMatch = /^```[\w]*\n?([\s\S]*?)```$/.exec(p);
-            if (codeMatch) return { type: 'code' as const, content: codeMatch[1] };
-            return { type: 'text' as const, content: p };
-        });
-}
 
 function MessageContent({ content, role }: { content: string; role: 'user' | 'ai' | 'system' }) {
     if (role !== 'ai') {
         return <pre className="chat-text">{content}</pre>;
     }
-    const segments = parseSegments(content);
     return (
-        <>
-            {segments.map((seg, i) =>
-                seg.type === 'code'
-                    ? <code key={i} className="chat-code-block">{seg.content}</code>
-                    : <pre key={i} className="chat-text">{seg.content}</pre>
-            )}
-        </>
+        <div className="chat-markdown">
+            <ReactMarkdown
+                components={{
+                    code({ className, children, ...props }) {
+                        const isBlock = !props.ref;
+                        return isBlock
+                            ? <code className="chat-code-block">{children}</code>
+                            : <code className="chat-inline-code" {...props}>{children}</code>;
+                    },
+                }}
+            >
+                {content}
+            </ReactMarkdown>
+        </div>
     );
 }
 
