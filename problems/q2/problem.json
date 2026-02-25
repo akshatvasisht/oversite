@@ -1,0 +1,15 @@
+{
+    "id": "q2",
+    "project_name": "q2",
+    "company": "OverSite",
+    "title": "React Typeahead / Search",
+    "description": "Implement a debounced search input that fetches user results from a mock API and renders them in a dropdown.",
+    "duration": "45 min",
+    "difficulty": "Easy",
+    "tags": [
+        "react",
+        "frontend",
+        "debouncing",
+        "api"
+    ]
+}

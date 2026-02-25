@@ -1,0 +1,14 @@
+{
+    "id": "q1",
+    "project_name": "q1",
+    "company": "OverSite",
+    "title": "Shopping Cart Debugger",
+    "description": "A discount engine produces wrong totals when a coupon and a quantity tier are both active. Trace the logic across 3 files and fix the order of operations.",
+    "duration": "60 min",
+    "difficulty": "Medium",
+    "tags": [
+        "python",
+        "debugging",
+        "logic-order"
+    ]
+}
