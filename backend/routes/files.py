@@ -12,17 +12,13 @@ files_bp = Blueprint("files", __name__)
 @require_session
 def create_file(session, db):
     """
-    Creates a new file record for the current session.
-    ---
-    Input (JSON):
-        - filename (str): Name of the file (e.g., 'utils.py')
-        - initial_content (str, optional): Starting content
-        - language (str, optional): Language identifier
-    Output (201):
-        - file_id (str): UUID of the created file
-        - created_at (str): ISO timestamp
-    Errors:
-        - 400: Missing filename
+    Registers a new source file within the session workspace.
+
+    Initialized the file record and logs an audit event indicating the 
+    resource creation.
+
+    Returns:
+        A JSON confirmation of the file ID and creation time.
     """
     data = request.get_json()
     filename = data.get("filename")
@@ -78,18 +74,13 @@ from services.diff import compute_edit_delta
 @require_session
 def save_file(session, db, file_id):
     """
-    Saves a snapshot of a file's content and records an editor event.
-    ---
-    Input (Path):
-        - file_id (str): UUID of the file to save
-    Input (JSON):
-        - content (str): The full content of the file
-    Output (200):
-        - event_id (str): UUID of the generated EditorEvent
-        - saved_at (str): ISO timestamp
-    Errors:
-        - 400: Missing content
-        - 404: File not found
+    Persists a file snapshot and generates a behavioral delta.
+
+    Compares the incoming content with the previous known state to 
+    record granular modifications for the telemetry pipeline.
+
+    Returns:
+        A JSON record of the save event and timestamp.
     """
     data = request.get_json()
     content = data.get("content")
@@ -145,16 +136,13 @@ def save_file(session, db, file_id):
 @require_session
 def file_event(session, db):
     """
-    Logs metadata-only file events (open/close).
-    ---
-    Input (JSON):
-        - file_id (str): UUID of the file
-        - event_type (str): file_open or file_close
-    Output (200):
-        - event_id (str): UUID of the generated Event record
-    Errors:
-        - 400: Invalid event type
-        - 404: File not found
+    Logs meta-telemetry for file lifecycle actions (open/close).
+
+    Used to track which files are actively being reviewed or ignored 
+    by the candidate without requiring full content saves.
+
+    Returns:
+        A JSON confirmation of the event record ID.
     """
     data = request.get_json()
     file_id = data.get("file_id")

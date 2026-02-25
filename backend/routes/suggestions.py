@@ -9,6 +9,12 @@ suggestions_bp = Blueprint("suggestions", __name__)
 
 
 def _write_editor_snapshot(db, session_id, file_id, trigger, content, suggestion_id):
+    """
+    Persists a full content snapshot associated with an AI suggestion event.
+
+    Ensures that the state of the editor immediately before or after 
+    a suggestion is auditable for critical review analysis.
+    """
     snapshot = EditorEvent(
         event_id=str(uuid.uuid4()),
         session_id=session_id,
@@ -28,18 +34,13 @@ def _write_editor_snapshot(db, session_id, file_id, trigger, content, suggestion
 @require_session
 def create_suggestion(session, db):
     """
-    Records an AI-generated code suggestion and notifies the system.
-    ---
-    Input (JSON):
-        - interaction_id (str): The AI interaction that sparked this
-        - file_id (str): Target file
-        - original_content (str): Content before suggestion
-        - proposed_content (str): Content after suggestion
-    Output (201):
-        - suggestion_id (str): UUID
-        - hunks (list): Parsed differences for the UI to render
-    Errors:
-        - 400: Invalid content or IDs
+    Records a discrete AI suggestion and parses it into reviewable hunks.
+
+    Triggers the editor snapshot logic to baseline the file state before 
+    the candidate begins interaction with the suggestion.
+
+    Returns:
+        A JSON payload containing the suggestion ID and parsed hunks.
     """
     data = request.get_json()
     interaction_id = data.get("interaction_id")
@@ -116,17 +117,13 @@ def create_suggestion(session, db):
 @require_session
 def resolve_suggestion(session, db, suggestion_id):
     """
-    Finalizes a suggestion state (Accept All / Reject All).
-    ---
-    Input (JSON):
-        - final_content (str): The version stored in the editor after resolution
-        - all_accepted (bool): Logic outcome
-        - any_modified (bool): Logic outcome
-    Output (200):
-        - resolved_at (str): ISO timestamp
-    Errors:
-        - 404: Suggestion not found
-        - 409: Already resolved
+    Finalizes the resolution of an entire suggestion block.
+
+    Supports bulk acceptance or rejection, recording the final editor 
+    state achieved after the candidate's review process.
+
+    Returns:
+        A JSON confirmation of the resolution time.
     """
     suggestion = db.query(AISuggestion).filter_by(suggestion_id=suggestion_id).first()
 
@@ -180,12 +177,10 @@ def resolve_suggestion(session, db, suggestion_id):
 @require_session
 def get_suggestion(session, db, suggestion_id):
     """
-    Retrieves metadata for a specific suggestion.
-    ---
-    Input (Path):
-        - suggestion_id (str): UUID
-    Output (200):
-        - suggestion object (json)
+    Retrieves the persisted metadata for a specific suggestion.
+
+    Returns:
+        A JSON object containing the full suggestion history and resolution state.
     """
     suggestion = db.query(AISuggestion).filter_by(suggestion_id=suggestion_id).first()
 
@@ -211,17 +206,14 @@ def get_suggestion(session, db, suggestion_id):
 @require_session
 def decide_chunk(session, db, suggestion_id, chunk_index):
     """
-    Records a decision on a single hunk of code within a suggesting.
-    ---
-    Input (JSON):
-        - decision (str): accepted, rejected, or modified
-        - final_code (str): The code actually kept by the user
-        - time_on_chunk_ms (int): Duration spent reviewing this hunk
-    Output (201):
-        - decision_id (str): UUID
-    Errors:
-        - 400: Invalid decision or missing data
-        - 409: Already decided
+    Records a granular decision on an individual code bunk.
+
+    Args:
+        suggestion_id: The parent suggestion identifier.
+        chunk_index: The specific hunk being addressed.
+
+    Returns:
+        A JSON record of the decision ID and timestamp.
     """
     from schema import ChunkDecision
     

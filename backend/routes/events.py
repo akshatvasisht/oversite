@@ -19,14 +19,17 @@ from services.diff import compute_edit_delta
 @require_session
 def editor_event(session, db):
     """
-    Logs an incremental code edit event to the database.
-    ---
-    Input (JSON):
-        - file_id (str): Target file
-        - content (str): New full content (converted to delta on backend)
-    Output (201):
-        - event_id (str): UUID
-        - recorded_at (str): ISO timestamp
+    Records an incremental code modification event from the editor.
+
+    Calculates the diff between the previous state and the current content
+    to track candidate deliberation and iteration speed.
+
+    Args:
+        session: Active session model instance (injected).
+        db: Database session (injected).
+
+    Returns:
+        A tuple containing the JSON record with event ID and HTTP status.
     """
     data = request.get_json()
     file_id = data.get("file_id")
@@ -84,15 +87,17 @@ def editor_event(session, db):
 @require_session
 def execute_event(session, db):
     """
-    Executes candidate code in a temporary sandbox environment.
-    ---
-    Input (JSON):
-        - entrypoint (str): File to run (e.g. 'main.py')
-        - files (list): Array of {filename, content} to write into sandbox
-    Output (200):
-        - stdout (str): Execution output
-        - stderr (str): Error output or engine errors
-        - exit_code (int): 0 for success
+    Executes the specified entrypoint within an ephemeral sandbox environment.
+
+    Provisioning a temporary directory, writes all session files, and 
+    invokes the appropriate execution engine (python or pytest).
+
+    Args:
+        session: Active session model instance (injected).
+        db: Database session (injected).
+
+    Returns:
+        A tuple containing the execution output (stdout/stderr) and exit status.
     """
     data = request.get_json()
     entrypoint = data.get("entrypoint")
@@ -116,6 +121,7 @@ def execute_event(session, db):
     exit_code = 1
 
     try:
+        # Dynamically provision an ephemeral directory for the sandbox execution
         with tempfile.TemporaryDirectory() as tmpdir:
             for f in files:
                 fname = f.get("filename")
@@ -126,12 +132,25 @@ def execute_event(session, db):
                     with open(filepath, "w") as out:
                         out.write(content)
 
-            is_test = os.path.basename(entrypoint).startswith("test_") or os.path.basename(entrypoint).endswith("_test.py")
-            if is_test:
-                cmd = ["python", "-m", "pytest", entrypoint, "-v"]
+            # Determine the appropriate execution engine based on file naming conventions
+            # Support both specific test files and test directories
+            is_dir = os.path.isdir(os.path.join(tmpdir, entrypoint))
+            is_test_file = os.path.basename(entrypoint).startswith("test_") or os.path.basename(entrypoint).endswith("_test.py")
+            
+            import sys
+            if is_dir:
+                # If a directory is provided, check if it looks like a test suite
+                has_tests = any(f.startswith("test_") or f.endswith("_test.py") for f in os.listdir(os.path.join(tmpdir, entrypoint)))
+                if has_tests or entrypoint == "tests":
+                    cmd = [sys.executable, "-m", "pytest", entrypoint, "-v"]
+                else:
+                    # Fallback to python execution if it's just a folder with no obvious tests
+                    cmd = [sys.executable, entrypoint]
+            elif is_test_file:
+                cmd = [sys.executable, "-m", "pytest", entrypoint, "-v"]
             else:
                 target_file = os.path.join(tmpdir, entrypoint)
-                cmd = ["python", target_file]
+                cmd = [sys.executable, target_file]
 
             result = subprocess.run(
                 cmd,
@@ -163,12 +182,16 @@ def execute_event(session, db):
 @require_session
 def panel_event(session, db):
     """
-    Logs metadata about UI panel focus changes (e.g. switching from chat to editor).
-    ---
-    Input (JSON):
-        - panel (str): target panel name
-    Output (201):
-        - event_id (str): UUID
+    Logs a UI interaction event, such as a panel focus or phase change.
+
+    Used to track time-on-task and workspace organization patterns.
+
+    Args:
+        session: Active session model instance (injected).
+        db: Database session (injected).
+
+    Returns:
+        A tuple containing the uniquely generated event ID confirmation.
     """
     data = request.get_json()
     panel = data.get("panel")

@@ -80,8 +80,8 @@ def test_editor_event_missing_content_returns_400(client):
 
 
 def test_editor_event_wrong_session_returns_404(client):
-    sid1 = make_session(client)
-    sid2 = make_session(client)
+    sid1 = make_session(client, username="user1")
+    sid2 = make_session(client, username="user2")
     fid = make_file(client, sid1)
     r = client.post(
         "/api/v1/events/editor",

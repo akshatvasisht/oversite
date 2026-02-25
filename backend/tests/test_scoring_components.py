@@ -1,12 +1,12 @@
 from helpers import seed_rich_session
-from services.scoring import extract_behavioral_features, run_component1, run_component2, run_component3, aggregate_scores
+from services.scoring import extract_behavioral_features, run_behavioral_evaluation, run_prompt_evaluation, run_critical_review_evaluation, aggregate_scores
 
 def test_extract_behavioral_features(db_session):
     sid = "test-session"
     seed_rich_session(db_session, sid)
     
     features = extract_behavioral_features(sid, db_session)
-    assert len(features) == 15
+    assert len(features) == 16
     
     # FEATURE_NAMES order:
     # 0: acceptance_rate
@@ -29,21 +29,28 @@ def test_extract_behavioral_features(db_session):
     # e2 (edit) -> e3 (execute) = 1 cycle
     assert features[11] == 1.0 # FEATURE_NAMES[11] is iteration_depth
 
-def test_run_component2(db_session):
+def test_run_behavioral_evaluation(db_session):
     sid = "test-session"
     seed_rich_session(db_session, sid)
-    res = run_component2(sid, db_session)
+    res = run_behavioral_evaluation(sid, db_session)
+    assert res['label'] == 'balanced'
+    assert len(res['explanations']) > 0
+
+def test_run_prompt_quality(db_session):
+    sid = "test-session"
+    seed_rich_session(db_session, sid)
+    res = run_prompt_evaluation(sid, db_session)
     
-    # prompt: "How do I implement two sum? `int[] result`"
-    # length > 20 (+1), has ` (+1), has _ snake_case (+0.5)
-    # base 1.0 + 1.0 + 1.0 + 0.5 = 3.5
-    assert res['score'] == 3.5
+    # prompt: "Refactor the logic to implement two sum? `int[] result`"
+    # length 51 (>20: +1, >50: +0.5), has ` (+1), has "Refactor" (+0.5)
+    # base 1.0 + 1.0 + 0.5 + 1.0 + 0.5 = 4.0
+    assert res['score'] == 4.0
     assert len(res['per_prompt']) == 1
 
-def test_run_component3(db_session):
+def test_run_critical_review(db_session):
     sid = "test-session"
     seed_rich_session(db_session, sid)
-    res = run_component3(sid, db_session)
+    res = run_critical_review_evaluation(sid, db_session)
     assert res['score'] == 4.5 # modified = 4.5
 
 def test_aggregation():
@@ -59,7 +66,7 @@ def test_run_component1_fallback(db_session):
     seed_rich_session(db_session, sid)
     from unittest.mock import patch
     with patch("services.scoring.load_models", return_value={}):
-        res = run_component1(sid, db_session)
+        res = run_behavioral_evaluation(sid, db_session)
         assert res['fallback'] == True
         assert res['label'] == "balanced"
         assert res['score'] == 3.0

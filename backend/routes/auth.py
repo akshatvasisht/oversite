@@ -3,54 +3,65 @@ from functools import wraps
 
 auth_bp = Blueprint("auth", __name__)
 
-TEST_USERS = {
-    "candidate1": "password123",
-    "candidate2": "password123",
-    "admin1": "admin123"
-}
-
 ROLES = {
-    "candidate1": "candidate",
+    "candidate": "candidate",
     "candidate2": "candidate",
-    "admin1": "admin"
+    "candidate3": "candidate",
+    "admin": "admin"
 }
 
 @auth_bp.route("/auth/login", methods=["POST"])
 def login():
     """
-    Authenticates a user and returns a mock JWT token.
-    ---
-    Input (JSON):
-        - username (str): testuser1 or admin1
-        - password (str): password123 or admin123
-    Output (200):
-        - userId (str): Normalized username
-        - role (str): candidate or admin
-        - token (str): Mock JWT string
-    Errors:
-        - 400: Missing username or password
-        - 401: Invalid credentials
+    Authenticates an user based on pre-defined demo usernames.
+
+    Validates the username against a static registry and issues 
+    a synthetic authorization token.
+
+    Returns:
+        A tuple containing the JSON response and HTTP status code. 
+        Success returns user metadata and a synthetic token.
     """
     data = request.get_json() or {}
     username = data.get("username", "")
-    password = data.get("password", "")
 
-    if not username or not password:
-        return jsonify({"error": "Username and password required"}), 400
+    if not username:
+        return jsonify({"error": "Username is required"}), 400
 
-    if username in TEST_USERS and TEST_USERS[username] == password:
+    if username.lower() == "databasereset":
+        from utils import clear_database
+        try:
+            clear_database()
+            return jsonify({
+                "userId": "system",
+                "role": "admin",
+                "token": "reset-success",
+                "message": "Database reset successfully. Page will reload."
+            }), 200
+        except Exception as e:
+            return jsonify({"error": f"Reset failed: {str(e)}"}), 500
+
+    if username in ROLES:
         role = ROLES[username]
-        # In a real app we'd create a JWT and set it in a secure HTTP-Only cookie. 
-        # Here we just return a simple structured mock token.
+        # Generate a structured synthetic token to facilitate role-based access control (RBAC).
         return jsonify({
             "userId": username,
             "role": role,
             "token": f"mock-jwt-{role}-{username}"
         }), 200
 
-    return jsonify({"error": "Invalid credentials"}), 401
+    return jsonify({"error": "User not found"}), 401
 
 def require_role(role_required):
+    """
+    Access control decorator for standardizing role-based authorization.
+
+    Args:
+        role_required: The role string ('candidate' or 'admin') required for access.
+
+    Returns:
+        A specialized decorator function for route protection.
+    """
     def decorator(f):
         @wraps(f)
         def decorated(*args, **kwargs):

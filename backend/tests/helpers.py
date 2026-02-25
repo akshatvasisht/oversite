@@ -89,7 +89,7 @@ def seed_rich_session(db, session_id):
     ))
     db.add(schema.AIInteraction(
         interaction_id="ai1", session_id=session_id, phase="implementation",
-        prompt="How do I implement two sum? `int[] result`", response="Here is the code...",
+        prompt="Refactor the logic to implement two sum? `int[] result`", response="Here is the code...",
         shown_at=now - timedelta(minutes=6)
     ))
     db.add(schema.AISuggestion(

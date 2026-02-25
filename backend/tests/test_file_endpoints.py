@@ -90,8 +90,8 @@ def test_save_file_missing_content(client):
 
 
 def test_save_file_wrong_session(client):
-    sid1 = make_session(client)
-    sid2 = make_session(client)
+    sid1 = make_session(client, username="alice")
+    sid2 = make_session(client, username="bob")
     file_id = make_file(client, sid1)
     r = client.post(
         f"/api/v1/files/{file_id}/save",

@@ -6,19 +6,40 @@ from db import get_db
 from schema import Session, Event, File, EditorEvent
 from utils import write_event
 from services.scoring import trigger_scoring
+from services.problem import ProblemService
+import os
 
 session_bp = Blueprint("session", __name__)
 
+# Initialize the discovery service pointing to the project-level problems directory
+PROBLEMS_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "problems")
+problem_service = ProblemService(PROBLEMS_PATH)
+
 
 def get_session_or_404(db, session_id):
-    session = db.query(Session).filter_by(session_id=session_id).first()
-    if not session:
-        return None
-    return session
+    """
+    Retrieves a session record by its unique identifier.
+
+    Args:
+        db: The active database session injected by the dependency or decorator.
+        session_id: The UUID string representing the session to look up.
+
+    Returns:
+        The Session model instance if found, or None if no match exists.
+    """
+    return db.query(Session).filter_by(session_id=session_id).first()
 
 
 def require_session(f):
-    """Decorator that extracts and validates X-Session-ID header."""
+    """
+    Decorator that ensures a valid X-Session-ID header is present.
+
+    Validates that the session exists in the database and is active.
+    Passes initialized 'session' and 'db' objects to the wrapped function.
+
+    Args:
+        f: The route handler function to be protected.
+    """
     from functools import wraps
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -40,18 +61,14 @@ def require_session(f):
 @session_bp.route("/session/start", methods=["POST"])
 def start_session():
     """
-    Initializes a new session or rehydrates an existing one.
-    ---
-    Input (JSON):
-        - username (str): Candidate name
-        - project_name (str): ID of the question/project
-    Output (200/201):
-        - session_id (str): UUID of the session
-        - started_at (str): ISO timestamp
-        - files (list, optional): Rehydrated file contents if resuming
-        - rehydrated (bool, optional): True if resuming
-    Errors:
-        - 400: Missing username
+    Initializes a new assessment session or rehydrates an active one.
+
+    If the user has an existing, un-ended session for the specified project, 
+    the endpoint returns the persisted state to allow for idempotent resumes.
+
+    Returns:
+        A tuple containing the JSON response and HTTP status code. The payload 
+        includes session ID, file state, and timing synchronization benchmarks.
     """
     data = request.get_json()
     username = data.get("username")
@@ -72,9 +89,13 @@ def start_session():
 
         now = datetime.now(timezone.utc)
 
+        # Always load initial files from the problems directory
+        initial_files_raw = problem_service.get_problem_initial_files(project_name)
+        
         if existing_session:
             files = db.query(File).filter_by(session_id=existing_session.session_id).all()
-            files_data = []
+            # Map of filename -> content for persisted edits
+            persisted_edits = {}
             for f in files:
                 last_event = (
                     db.query(EditorEvent)
@@ -82,19 +103,33 @@ def start_session():
                     .order_by(EditorEvent.timestamp.desc())
                     .first()
                 )
-                content = last_event.content if last_event else (f.initial_content or "")
+                if last_event:
+                    persisted_edits[f.filename] = last_event.content
+
+            files_data = []
+            for f_raw in initial_files_raw:
+                filename = f_raw["filename"]
                 files_data.append({
-                    "fileId": f.file_id,
-                    "filename": f.filename,
-                    "language": f.language,
-                    "content": content,
-                    "persisted": True
+                    "fileId": f"init-{uuid.uuid4()}",
+                    "filename": filename,
+                    "language": "python",
+                    "content": persisted_edits.get(filename, f_raw["content"]),
+                    "persisted": filename in persisted_edits
                 })
+
+            description = problem_service.get_problem_description(project_name)
+            metadata = problem_service.get_problem_metadata(project_name)
+            duration = int((now - existing_session.started_at.replace(tzinfo=timezone.utc)).total_seconds())
 
             return jsonify({
                 "session_id": existing_session.session_id,
                 "started_at": existing_session.started_at.isoformat(),
+                "elapsed_seconds": max(0, duration),
                 "files": files_data,
+                "description": description,
+                "title": metadata.get("title", "Problem"),
+                "difficulty": metadata.get("difficulty", "Medium"),
+                "duration": metadata.get("duration", "N/A"),
                 "rehydrated": True 
             }), 200
 
@@ -118,9 +153,29 @@ def start_session():
 
         db.commit()
 
+        initial_files = []
+        for f in initial_files_raw:
+            initial_files.append({
+                "fileId": f"init-{uuid.uuid4()}",
+                "filename": f["filename"],
+                "language": "python", 
+                "content": f["content"],
+                "persisted": False
+            })
+
+        description = problem_service.get_problem_description(project_name)
+        metadata = problem_service.get_problem_metadata(project_name)
+
         return jsonify({
             "session_id": session_id,
             "started_at": now.isoformat(),
+            "elapsed_seconds": 0,
+            "files": initial_files,
+            "description": description,
+            "title": metadata.get("title", "Problem"),
+            "difficulty": metadata.get("difficulty", "Medium"),
+            "duration": metadata.get("duration", "N/A"),
+            "rehydrated": False
         }), 201
     except Exception:
         db.rollback()
@@ -133,14 +188,17 @@ def start_session():
 @require_session
 def end_session(session, db):
     """
-    Submits the session and triggers the backend scoring pipeline.
-    ---
-    Output (200):
-        - session_id (str): UUID of the ended session
-        - ended_at (str): ISO timestamp
-        - duration_seconds (int): Total active duration
-    Errors:
-        - 400: Session already ended
+    Finalizes the candidate's assessment and triggers the evaluation pipeline.
+
+    Calculates the total session duration and initiates the background 
+    machine learning scoring task.
+
+    Args:
+        session: Active session model instance to be finalized.
+        db: Database session.
+
+    Returns:
+        A JSON summary of the finalized session including total duration.
     """
     if session.ended_at:
         return jsonify({"error": "Session already ended"}), 400
@@ -165,15 +223,17 @@ def end_session(session, db):
 @require_session
 def update_phase(session, db):
     """
-    Updates the current interview phase state.
-    ---
-    Input (JSON):
-        - phase (str): orientation, implementation, or verification
-    Output (200):
-        - message (str): Success message
-        - phase (str): The updated phase
-    Errors:
-        - 400: Missing phase
+    Tracks the candidate's progression through assessment phases.
+
+    Args:
+        phase: One of 'orientation', 'implementation', or 'verification'.
+
+    Args:
+        session: Active session model instance.
+        db: Database session.
+
+    Returns:
+        A JSON confirmation of the updated state and current phase label.
     """
     data = request.get_json()
     phase = data.get("phase")
@@ -197,60 +257,53 @@ def update_phase(session, db):
 @session_bp.route("/questions", methods=["GET"])
 def get_questions():
     """
-    Returns a list of available coding questions and user status.
-    ---
-    Input (Query Params):
-        - username (str, optional): To fetch per-user session status
-    Output (200):
-        - questions (list): Array of question objects with status (pending/in progress/submitted).
+    Retrieves the catalog of available coding challenges.
+
+    If a username is provided, also returns the completion status for 
+    each challenge.
+
+    Returns:
+        A list of question metadata objects, including completion status if authenticated.
     """
     username = request.args.get("username")
-    status = "pending"
-
+    problems = problem_service.list_problems()
+    
     if username:
         db = next(get_db())
         try:
-            session = (
-                db.query(Session)
-                .filter_by(username=username, project_name="q1")
-                .order_by(Session.started_at.desc())
-                .first()
-            )
-            if session:
-                if session.ended_at:
-                    status = "submitted"
+            for p in problems:
+                session = (
+                    db.query(Session)
+                    .filter_by(username=username, project_name=p["project_name"])
+                    .order_by(Session.started_at.desc())
+                    .first()
+                )
+                if session:
+                    p["status"] = "submitted" if session.ended_at else "in progress"
                 else:
-                    status = "in progress"
+                    p["status"] = "pending"
         finally:
             db.close()
+    else:
+        for p in problems:
+            p["status"] = "pending"
 
-    return jsonify([
-        {
-            "id": "q1",
-            "company": "OverSite",
-            "title": "Shopping Cart Debugger",
-            "description": "A discount engine produces wrong totals when a coupon and a quantity tier are both active. Trace the logic across 3 files and fix the order of operations.",
-            "duration": "60 min",
-            "difficulty": "Medium",
-            "files": ["cart.py", "product.py", "discount.py"],
-            "status": status,
-        }
-    ]), 200
+    return jsonify(problems), 200
 
 
 
 @session_bp.route("/session/<session_id>/trace", methods=["GET"])
 def get_trace(session_id):
     """
-    Retrieves the full event trace for a specific session (Admin tool).
-    ---
-    Input (Path):
-        - session_id (str): UUID of the session
-    Output (200):
-        - session_id (str): UUID
-        - events (list): Chronological list of all logged events
-    Errors:
-        - 404: Session not found
+    Retrieves the complete chronological action log for a session.
+
+    This is an administrative endpoint used to review exact candidate behavior.
+
+    Args:
+        session_id: Unique identifier for the session to audit.
+
+    Returns:
+        A chronological list of all telemetry events logged for the session.
     """
     db = next(get_db())
     try:

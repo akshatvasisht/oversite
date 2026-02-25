@@ -22,7 +22,16 @@ PHASE_VALUES = {"orientation", "implementation", "verification"}
 
 
 def _current_phase(db, session_id: str):
-    """Return the most recent interview phase from panel_focus events, or None."""
+    """
+    Identifies the candidate's active state from the session event log.
+
+    Args:
+        db: Database session.
+        session_id: Unique session identifier.
+
+    Returns:
+        The label of the most recent phase (e.g., 'implementation'), or None.
+    """
     event = (
         db.query(Event)
         .filter(
@@ -40,20 +49,14 @@ def _current_phase(db, session_id: str):
 @require_session
 def chat(session, db):
     """
-    Sends a prompt to the AI assistant and records the interaction.
-    ---
-    Input (JSON):
-        - prompt (str): User's message text
-        - file_id (str, optional): ID of the active file for context
-        - history (list, optional): Previous messages in the thread
-        - context (str, optional): Additional text context (e.g. file contents)
-    Output (201):
-        - interaction_id (str): UUID of the interaction
-        - response (str): AI's response text
-        - has_code_changes (bool): Whether the response contains a code block
-    Errors:
-        - 400: Missing prompt
-        - 502: AI service failure
+    Facilitates multi-turn interaction with the technical assessment assistant.
+
+    Records the conversation history and timestamps as telemetry for 
+    behavioral analysis. Pre-pends relevant file context to ensure AI 
+    suggestions are grounded in the active workspace.
+
+    Returns:
+        A JSON response containing the interaction ID and AI's response text.
     """
     data = request.get_json()
     prompt_text = data.get("prompt")
@@ -70,7 +73,8 @@ def chat(session, db):
     # Prepend file context to the user prompt so Gemini can see the code
     full_prompt = f"{context}\n\n{prompt_text}" if context else prompt_text
 
-    # Call Gemini first — if it fails, write neither DB row
+    # Prioritize external LLM inference; only persist to the database upon 
+    # successful reception of a model response to maintain data integrity.
     try:
         client = GeminiClient()
         response_text = client.assistant_call(full_prompt, history, system_prompt)
@@ -118,3 +122,35 @@ def chat(session, db):
         "has_code_changes": has_code_changes,
         "shown_at": now.isoformat(),
     }), 201
+@ai_bp.route("/ai/history", methods=["GET"])
+@require_session
+def get_chat_history(session, db):
+    """
+    Retrieves the chronological record of AI interactions for the current session.
+
+    Returns:
+        A JSON object containing the list of historical chat messages.
+    """
+    interactions = (
+        db.query(AIInteraction)
+        .filter(AIInteraction.session_id == session.session_id)
+        .order_by(AIInteraction.shown_at.asc())
+        .all()
+    )
+
+    history = []
+    for inter in interactions:
+        history.append({
+            "id": f"msg-hist-{inter.interaction_id[:8]}",
+            "role": "user",
+            "content": inter.prompt,
+            "timestamp": inter.shown_at.isoformat() if inter.shown_at else None
+        })
+        history.append({
+            "id": f"msg-hist-{inter.interaction_id[:8]}-res",
+            "role": "ai",
+            "content": inter.response,
+            "timestamp": inter.shown_at.isoformat() if inter.shown_at else None
+        })
+
+    return jsonify({"messages": history}), 200

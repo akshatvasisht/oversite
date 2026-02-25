@@ -43,24 +43,24 @@ def test_double_session_end_returns_400(client):
     assert "already ended" in r2.get_json()["error"].lower()
 
 def test_auth_login_success(client):
-    r = client.post("/api/v1/auth/login", json={"username": "admin1", "password": "admin123"})
+    r = client.post("/api/v1/auth/login", json={"username": "admin"})
     assert r.status_code == 200
     data = r.get_json()
     assert data["role"] == "admin"
-    assert data["token"] == "mock-jwt-admin-admin1"
+    assert data["token"] == "mock-jwt-admin-admin"
 
 def test_auth_login_failure(client):
-    r = client.post("/api/v1/auth/login", json={"username": "admin1", "password": "wrong"})
+    r = client.post("/api/v1/auth/login", json={"username": "nonexistent"})
     assert r.status_code == 401
 
 def test_analytics_requires_admin_role(client):
     r = client.get("/api/v1/analytics/overview")
     assert r.status_code == 401 # Missing token
     
-    r = client.get("/api/v1/analytics/overview", headers={"Authorization": "Bearer mock-jwt-candidate-candidate1"})
+    r = client.get("/api/v1/analytics/overview", headers={"Authorization": "Bearer mock-jwt-candidate-candidate"})
     assert r.status_code == 403 # Insufficient permissions
 
-    r = client.get("/api/v1/analytics/overview", headers={"Authorization": "Bearer mock-jwt-admin-admin1"})
+    r = client.get("/api/v1/analytics/overview", headers={"Authorization": "Bearer mock-jwt-admin-admin"})
     assert r.status_code == 200 # Success
 
 def test_dual_write_rolls_back_on_db_error(client, monkeypatch):

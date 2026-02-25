@@ -123,13 +123,13 @@ def test_resolve_dual_writes_suggestion_resolved_event(client):
 
 
 def test_resolve_suggestion_from_different_session_returns_404(client):
-    sid1 = make_session(client)
+    sid1 = make_session(client, username="alice")
     fid = make_file(client, sid1)
     iid = make_interaction(client, sid1)
     r = post_suggestion(client, sid1, fid, iid)
     suggestion_id = r.get_json()["suggestion_id"]
 
-    sid2 = make_session(client)
+    sid2 = make_session(client, username="bob")
     r2 = resolve(client, sid2, suggestion_id)
     assert r2.status_code == 404
 

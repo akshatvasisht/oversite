@@ -5,6 +5,9 @@ from dataclasses import dataclass
 
 @dataclass
 class Hunk:
+    """
+    Represents a discrete block of code changes between two versions of a file.
+    """
     index: int
     original_code: str
     proposed_code: str
@@ -14,7 +17,16 @@ class Hunk:
 
 
 def compute_edit_delta(old: str, new: str) -> str:
-    """Return a unified diff string (with context) between old and new content."""
+    """
+    Generates a unified diff representing the delta between two strings.
+
+    Args:
+        old: The baseline content.
+        new: The target content after modifications.
+
+    Returns:
+        A unified diff string with default context lines.
+    """
     old_lines = old.splitlines(keepends=True)
     new_lines = new.splitlines(keepends=True)
     return "".join(difflib.unified_diff(old_lines, new_lines, lineterm=""))
@@ -22,16 +34,17 @@ def compute_edit_delta(old: str, new: str) -> str:
 
 def parse_hunks(original: str, proposed: str) -> list:
     """
-    Parse changes between original and proposed into individual Hunk objects.
+    Deconstructs a proposed change into individual, actionable Hunk objects.
 
-    Uses n=0 (no context lines) so each separate change block becomes its own
-    hunk — mirroring the Cursor-style accept/reject flow where each suggestion
-    is a discrete unit.
+    Utilizes zero context lines to ensure each contiguous change block is 
+    treated as a discrete unit, facilitating granular behavioral analysis.
 
-    NOTE: This is a scoring pipeline utility only. It is never called at
-    request time. The scoring pipeline calls it offline in run_component3()
-    after session end to populate chunk_decisions from the three snapshots:
-        original_content  →  proposed_content  →  snapshot_final
+    Args:
+        original: The file content before the proposed change.
+        proposed: The file content after the suggested edits.
+
+    Returns:
+        A list of Hunk instances representing the identified change blocks.
     """
     orig_lines = original.splitlines(keepends=True)
     prop_lines = proposed.splitlines(keepends=True)
