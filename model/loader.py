@@ -12,12 +12,17 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 def load_cups(force_download: bool = False) -> pd.DataFrame:
-    """
-    Loads the real CUPS dataset from Microsoft's GitHub repository.
-    
+    """Loads and normalizes the CUPS dataset for behavioral modeling.
+
+    Retrieves aggregated programming session telemetry records from the 
+    official Microsoft repository and performs feature projection to align 
+    with the 15-feature behavioral contract.
+
+    Args:
+        force_download: If true, bypasses local cache and re-downloads the dataset.
+
     Returns:
-        pd.DataFrame: A DataFrame containing aggregated programming session telemetry 
-                      per user to match the (15,) feature contract.
+        pd.DataFrame: A normalized dataset of session evaluation records.
     """
     data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
     os.makedirs(data_dir, exist_ok=True)
@@ -69,24 +74,37 @@ def load_cups(force_download: bool = False) -> pd.DataFrame:
             edit_rate = edit_sugg_count / accepted_count if accepted_count > 0 else 0.0
             
             # 5. Reprompt Ratio:
-            # We use 'Prompt Crafting (V)' frequency relative to total actions
             prompt_count = (df['LabeledState'] == 'Prompt Crafting (V)').sum()
             reprompt_ratio = prompt_count / len(df) if len(df) > 0 else 0.0
             
             # 6. Orientation Phase Prompt Count
             orient_count = (df['LabeledState'] == 'Looking up Documentation (N)').sum()
 
+            # 7. Functional Implementation
+            impl_count = (df['LabeledState'] == 'Writing New Functionality (Z)').sum()
+            
+            # 8. Engagement Depth (Thinking + Debugging)
+            depth_count = (df['LabeledState'] == 'Thinking About New Code To Write (F)').sum() + \
+                          (df['LabeledState'] == 'Debugging/Testing Code (H)').sum()
+            
+            # 9. Manual Code Editing
+            manual_edit_count = (df['LabeledState'] == 'Editing Written Code(C)').sum()
+            edit_ratio = manual_edit_count / len(df) if len(df) > 0 else 0.0
+
             row = {
                 'session_id': str(user_id),
-                'acceptance_rate': acc_rate,
-                'deliberation_time': delib_time,
-                'post_acceptance_edit_rate': edit_rate,
-                'verification_frequency': verif_freq,
-                'reprompt_ratio': reprompt_ratio,
-                'prompt_count_verification_phase': verif_freq * 0.5, # Approximation
-                'prompt_count_orientation_phase': orient_count,
-                 # We don't have exact 'editor pct' in this dataset, so default to 0.5
-                'time_by_panel_editor_pct': 0.5
+                'rate_acceptance': acc_rate,
+                'duration_deliberation_avg': delib_time,
+                'rate_post_acceptance_edit': edit_rate,
+                'freq_verification': verif_freq,
+                'ratio_reprompt': reprompt_ratio,
+                'count_prompt_orientation': orient_count,
+                'count_prompt_implementation': impl_count,
+                'count_prompt_verification': verif_freq * 0.5,
+                'duration_orientation_s': orient_count * 15.0, # Proxy: 15s per documentation action
+                'depth_iteration': float(depth_count),
+                'pct_time_chat': reprompt_ratio,
+                'pct_time_editor': edit_ratio
             }
             aggregated_rows.append(row)
             
@@ -99,18 +117,9 @@ def load_cups(force_download: bool = False) -> pd.DataFrame:
         raise
 
 def passes_wildchat_filters(conversation: List[Dict[str, Any]]) -> bool:
-    """
-    Determines if a WildChat conversation meets the coding session criteria.
-    
-    Criteria:
-    - At least config.WILDCHAT_MIN_TURNS turns.
-    - Contains at least one markdown code block (```).
-    
-    Args:
-        conversation: A list of message turn dictionaries.
-        
-    Returns:
-        bool: True if the conversation passes the filters.
+    """Evaluates if a WildChat conversation satisfies coding session heuristics.
+
+    Filters for multi-turn interactions containing explicit markdown code blocks.
     """
     if len(conversation) < config.WILDCHAT_MIN_TURNS:
         return False
@@ -121,15 +130,14 @@ def passes_wildchat_filters(conversation: List[Dict[str, Any]]) -> bool:
     )
 
 def load_wildchat(max_records: int = config.WILDCHAT_MAX_RECORDS, use_local_shard: bool = True) -> pd.DataFrame:
-    """
-    Loads and filters the WildChat dataset.
-    
+    """Loads and filters the WildChat dataset for prompt quality training.
+
     Args:
-        max_records: Maximum number of filtered records to collect.
-        use_local_shard: Whether to use the downloaded parquet shard.
-        
+        max_records: Maximum number of qualifying records to ingest.
+        use_local_shard: If true, prioritizes high-speed local parity shards.
+
     Returns:
-        pd.DataFrame: A DataFrame of filtered coding conversations.
+        pd.DataFrame: A filtered collection of developer chat interactions.
     """
     data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
     parquet_path = os.path.join(data_dir, 'wildchat_shard.parquet')

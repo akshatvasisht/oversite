@@ -30,16 +30,16 @@ def apply_proxy_labels(df: pd.DataFrame) -> pd.DataFrame:
     # Pre-calculate thresholds based on config quantiles
     thresholds = {
         'acc': {
-            'low': df['acceptance_rate'].quantile(config.LOW_THRESHOLD),
-            'high': df['acceptance_rate'].quantile(config.HIGH_THRESHOLD)
+            'low': df['rate_acceptance'].quantile(config.LOW_THRESHOLD),
+            'high': df['rate_acceptance'].quantile(config.HIGH_THRESHOLD)
         },
         'delib': {
-            'low': df['deliberation_time'].quantile(config.LOW_THRESHOLD),
-            'high': df['deliberation_time'].quantile(config.HIGH_THRESHOLD)
+            'low': df['duration_deliberation_avg'].quantile(config.LOW_THRESHOLD),
+            'high': df['duration_deliberation_avg'].quantile(config.HIGH_THRESHOLD)
         },
         'edit': {
-            'low': df['post_acceptance_edit_rate'].quantile(config.LOW_THRESHOLD),
-            'high': df['post_acceptance_edit_rate'].quantile(config.HIGH_THRESHOLD)
+            'low': df['rate_post_acceptance_edit'].quantile(config.LOW_THRESHOLD),
+            'high': df['rate_post_acceptance_edit'].quantile(config.HIGH_THRESHOLD)
         }
     }
 
@@ -47,24 +47,24 @@ def apply_proxy_labels(df: pd.DataFrame) -> pd.DataFrame:
         score = 0
         
         # Lower acceptance rate -> Strategic behavior
-        if pd.notna(row['acceptance_rate']):
-            if row['acceptance_rate'] <= thresholds['acc']['low']:
+        if pd.notna(row['rate_acceptance']):
+            if row['rate_acceptance'] <= thresholds['acc']['low']:
                 score += 1
-            elif row['acceptance_rate'] > thresholds['acc']['high']:
+            elif row['rate_acceptance'] > thresholds['acc']['high']:
                 score -= 1
                 
         # Higher deliberation time -> Strategic behavior
-        if pd.notna(row['deliberation_time']):
-            if row['deliberation_time'] >= thresholds['delib']['high']:
+        if pd.notna(row['duration_deliberation_avg']):
+            if row['duration_deliberation_avg'] >= thresholds['delib']['high']:
                 score += 1
-            elif row['deliberation_time'] < thresholds['delib']['low']:
+            elif row['duration_deliberation_avg'] < thresholds['delib']['low']:
                 score -= 1
                 
         # Higher edit rate post-acceptance -> Strategic behavior
-        if pd.notna(row['post_acceptance_edit_rate']):
-            if row['post_acceptance_edit_rate'] >= thresholds['edit']['high']:
+        if pd.notna(row['rate_post_acceptance_edit']):
+            if row['rate_post_acceptance_edit'] >= thresholds['edit']['high']:
                 score += 1
-            elif row['post_acceptance_edit_rate'] < thresholds['edit']['low']:
+            elif row['rate_post_acceptance_edit'] < thresholds['edit']['low']:
                 score -= 1
                 
         if score >= 1:

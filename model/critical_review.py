@@ -23,29 +23,19 @@ def _levenshtein_distance(s1: str, s2: str) -> int:
         previous_row = current_row
     return previous_row[-1]
 
-def component3_score(decisions: List[Dict[str, Any]]) -> float:
-    """
-    Computes the Component 3 (Critical Review) score based on post-acceptance edit rate.
-    
-    The input list should contain dictionaries mapping to the `chunk_decisions` table:
-    {
-        'decision_id': ...,
-        'original_code': str,
-        'proposed_code': str,
-        'final_code': str,
-        'decision': 'accepted' | 'rejected' | 'modified'
-    }
-    
-    We focus on 'accepted' and 'modified' chunks.
-    The heuristic threshold percentiles (based on CUPS user study distribution):
-      > 60% modified = 5.0 (Strategic rewriting/Heavy customization)
-      > 35% modified = 4.0 (Active iteration)
-      > 15% modified = 3.0 (Balanced tweaks)
-      > 5%  modified = 2.0 (Minor fixes)
-      <= 5% modified = 1.0 (Passive acceptance / Over-reliant)
-      
+def compute_critical_review_score(decisions: List[Dict[str, Any]]) -> float:
+    """Computes the critical review score based on post-acceptance edit rate.
+
+    Analyzes behavioral signals where the candidate modifies AI-generated code 
+    after acceptance, distinguishing between passive reliance and active 
+    critical engagement.
+
+    Args:
+        decisions: A list of dictionary records mapping to chunk decisions.
+            Each dict should contain 'proposed_code', 'final_code', and 'decision'.
+
     Returns:
-        float: A score between 1.0 and 5.0
+        A normalized score between 1.0 and 5.0 representing critical engagement.
     """
     if not decisions:
         logger.warning("No chunk decisions provided. Defaulting to Neutral score (3.0)")

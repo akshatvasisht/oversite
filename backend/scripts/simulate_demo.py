@@ -1,29 +1,67 @@
-import time
+#!/usr/bin/env python3
 import requests
+import time
 import json
+import os
+import sys
+import logging
+
+# Setup logging
+LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+LOG_FILE = os.path.join(LOG_DIR, "demo_output.log")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
 
 BASE_URL = "http://localhost:8000/api/v1"
 
-def print_step(step_name):
-    print(f"\n[{time.strftime('%H:%M:%S')}] \033[96m=== {step_name} ===\033[0m")
+def print_step(step_name: str):
+    """
+    Renders a highlighted progression step to the console output.
 
-def print_result(res):
+    Args:
+        step_name: Description of the current simulation stage.
+    """
+    logger.info(f"=== {step_name} ===")
+
+def print_result(res: requests.Response):
+    """
+    Evaluates the response status and renders a success or failure summary.
+
+    Args:
+        res: The response object from a requests call.
+    """
     if res.status_code // 100 == 2:
-        print(f"\033[92mSuccess ({res.status_code})\033[0m: {json.dumps(res.json(), indent=2)[:300]}...")
+        logger.info(f"Success ({res.status_code}): {json.dumps(res.json(), indent=2)[:300]}...")
     else:
-        print(f"\033[91mFailed ({res.status_code})\033[0m: {res.text}")
+        logger.error(f"Failed ({res.status_code}): {res.text}")
         exit(1)
 
 def run_demo():
+    """
+    Executes a comprehensive end-to-end simulation of the OverSite platform.
+
+    Emulates a full candidate journey: login, session initialization, 
+    interactive coding with AI, execution, and session submission.
+    Follows with an admin journey to verify scoring and narrative generation.
+    """
     print_step("1. Candidate logs in")
-    res = requests.post(f"{BASE_URL}/auth/login", json={"username": "candidate1", "password": "password123"})
+    res = requests.post(f"{BASE_URL}/auth/login", json={"username": "candidate"})
     print_result(res)
     candidate_token = res.json()["token"]
     
     # We pass session_id in X-Session-ID, but for starting, we just need the username (the backend uses the token or username in body?)
     # Let's check test_session_endpoints.py. /session/start expects {"username": "candidate", "project_name": "demo"}
     print_step("2. Candidate starts a session")
-    res = requests.post(f"{BASE_URL}/session/start", json={"username": "candidate1", "project_name": "tic-tac-toe"}, headers={"Authorization": f"Bearer {candidate_token}"})
+    res = requests.post(f"{BASE_URL}/session/start", json={"username": "candidate", "project_name": "tic-tac-toe"}, headers={"Authorization": f"Bearer {candidate_token}"})
     print_result(res)
     session_id = res.json()["session_id"]
     headers = {
@@ -85,7 +123,7 @@ def run_demo():
     print_result(res)
 
     print_step("10. Admin logs in")
-    res = requests.post(f"{BASE_URL}/auth/login", json={"username": "admin1", "password": "admin123"})
+    res = requests.post(f"{BASE_URL}/auth/login", json={"username": "admin"})
     print_result(res)
     admin_token = res.json()["token"]
     admin_headers = {
@@ -102,7 +140,7 @@ def run_demo():
         if res.status_code == 200:
             data = res.json()
             if data.get("llm_narrative"):
-                print(f"\n\033[92mNarrative Generated!\033[0m\n{data['llm_narrative']}")
+                logger.info(f"Narrative Generated!\n{data['llm_narrative']}")
                 break
         print(".", end="", flush=True)
         time.sleep(1)
@@ -110,13 +148,12 @@ def run_demo():
         print("\n\033[91mTimed out waiting for narrative.\033[0m")
         exit(1)
 
-    print_step("13. Complete Session Analytics Payload")
-    print(json.dumps(res.json(), indent=2))
-    print("\n\033[92mDemo simulation completed flawlessly.\033[0m")
+    logger.info(json.dumps(res.json(), indent=2))
+    logger.info("Demo simulation completed flawlessly.")
 
 if __name__ == "__main__":
     try:
         run_demo()
     except requests.exceptions.ConnectionError:
-        print("\033[91mConnection Error: Is the backend server running on localhost:8000?\033[0m")
+        logger.error("Connection Error: Is the backend server running on localhost:8000?")
         exit(1)

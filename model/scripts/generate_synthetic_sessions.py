@@ -17,7 +17,7 @@ def generate_synthetic_sessions(output_dir: str = "data/synthetic") -> None:
     - 5 Balanced
     - 10 Over-reliant (common baseline)
     
-    Each session JSON mocks the 15-feature Component 1 vector, the Component 2 prompt
+    Each session JSON mocks the 16-feature Component 1 vector, the Component 2 prompt
     strings, and the Component 3 chunk decisions.
     """
     os.makedirs(output_dir, exist_ok=True)
@@ -34,21 +34,21 @@ def generate_synthetic_sessions(output_dir: str = "data/synthetic") -> None:
         
         # 1. Component 1 Mock Features
         if profile == 'strategic':
-            c1_events = {
+            behavioral_events = {
                 'deliberation_time_avg': random.uniform(25.0, 60.0),
                 'verification_frequency': random.randint(3, 8),
                 'time_by_panel_editor_pct': random.uniform(0.60, 0.85),
                 'acceptance_rate': random.uniform(0.3, 0.7)
             }
         elif profile == 'balanced':
-            c1_events = {
+            behavioral_events = {
                 'deliberation_time_avg': random.uniform(10.0, 30.0),
                 'verification_frequency': random.randint(1, 4),
                 'time_by_panel_editor_pct': random.uniform(0.40, 0.60),
                 'acceptance_rate': random.uniform(0.5, 0.9)
             }
         else: # Over-reliant
-            c1_events = {
+            behavioral_events = {
                 'deliberation_time_avg': random.uniform(1.0, 10.0),
                 'verification_frequency': random.randint(0, 1),
                 'time_by_panel_editor_pct': random.uniform(0.10, 0.35),
@@ -94,9 +94,9 @@ def generate_synthetic_sessions(output_dir: str = "data/synthetic") -> None:
         session = {
             'session_id': session_id,
             'ground_truth_profile': profile,
-            'c1_raw_events': c1_events,
-            'c2_prompts': prompts,
-            'c3_decisions': decisions
+            'behavioral_events': behavioral_events,
+            'prompt_data': prompts,
+            'review_decisions': decisions
         }
         
         sessions.append(session)

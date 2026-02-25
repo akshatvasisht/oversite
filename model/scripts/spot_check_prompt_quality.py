@@ -8,7 +8,7 @@ sample_prompts = [
     "Write a python script to parse a csv file."
 ]
 
-print("=== C2 Feature Extractor Spot Check ===")
+print("=== Prompt Quality Feature Extractor Spot Check ===")
 for p in sample_prompts:
     print(f"\nPrompt: '{p}'")
     feats = extract_prompt_quality_features(p)

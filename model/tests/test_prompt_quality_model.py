@@ -3,7 +3,7 @@ import os
 import joblib
 from prompt_features import extract_prompt_quality_features, score_prompts
 
-def test_c2_model_loads():
+def test_prompt_quality_model_load():
     base_path = os.path.dirname(os.path.dirname(__file__))
     model_path = os.path.join(base_path, "models", "prompt_quality_classifier.joblib")
     model = joblib.load(model_path)

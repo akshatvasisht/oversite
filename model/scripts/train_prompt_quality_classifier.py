@@ -16,11 +16,22 @@ from loader import load_wildchat
 from prompt_features import extract_prompt_quality_features
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+LOG_FILE = os.path.join(LOG_DIR, "training_output.log")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 logger = logging.getLogger(__name__)
 
-# The 5 strict structural features we are using to avoid semantic over-fitting
-C2_FEATURE_NAMES = [
+# Strict structural features used to evaluate prompt quality without semantic bias.
+PROMPT_QUALITY_FEATURE_NAMES = [
     'prompt_length',
     'has_code_context',
     'has_function_name',
@@ -59,7 +70,7 @@ def parse_conversations(df: pd.DataFrame):
             feats_dict = extract_prompt_quality_features(current_prompt, next_prompt)
             
             # Enforce strict structural logic
-            x_vec = [feats_dict[name] for name in C2_FEATURE_NAMES]
+            x_vec = [feats_dict[name] for name in PROMPT_QUALITY_FEATURE_NAMES]
             y_label = int(feats_dict['re_prompt_indicator'])
             
             X_list.append(x_vec)
@@ -85,8 +96,12 @@ def parse_conversations(df: pd.DataFrame):
     return X, y
 
 
-def train_component2():
-    """Main training routine for Component 2."""
+def train_prompt_quality_classifier():
+    """Coordinates the training of the prompt quality XGBoost classifier.
+
+    Iterates through WildChat conversations to extract sequential user prompts 
+    and trains a binary classifier to detect re-prompt indicators.
+    """
     df_raw = load_wildchat(max_records=config.WILDCHAT_MAX_RECORDS)
     
     if df_raw.empty:
@@ -106,9 +121,9 @@ def train_component2():
     
     logger.info(f"Training XGBoost Classifier (n={len(X_train)})...")
     model = XGBClassifier(
-        n_estimators=config.C1_N_ESTIMATORS,  # Reusing existing config scale
-        max_depth=config.C1_MAX_DEPTH,
-        learning_rate=config.C1_LEARNING_RATE,
+        n_estimators=config.BEHAVIORAL_N_ESTIMATORS,  # Reusing existing config scale
+        max_depth=config.BEHAVIORAL_MAX_DEPTH,
+        learning_rate=config.BEHAVIORAL_LEARNING_RATE,
         random_state=config.RANDOM_SEED,
         eval_metric='logloss'
     )
@@ -150,14 +165,14 @@ def train_component2():
     if scale > 0:
         importances = importances / scale
         
-    importance_dict = {name: float(val) for name, val in zip(C2_FEATURE_NAMES, importances)}
+    importance_dict = {name: float(val) for name, val in zip(PROMPT_QUALITY_FEATURE_NAMES, importances)}
     
     # Save artifacts
     models_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models")
     os.makedirs(models_dir, exist_ok=True)
     
     model_path = os.path.join(models_dir, 'prompt_quality_classifier.joblib')
-    importances_path = os.path.join(models_dir, 'c2_importances.json')
+    importances_path = os.path.join(models_dir, 'prompt_quality_importances.json')
     
     joblib.dump(model, model_path)
     with open(importances_path, 'w') as f:
@@ -169,4 +184,4 @@ def train_component2():
     return acc
 
 if __name__ == "__main__":
-    train_component2()
+    train_prompt_quality_classifier()

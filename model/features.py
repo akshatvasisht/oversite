@@ -2,7 +2,7 @@ import logging
 import numpy as np
 import pandas as pd
 import re
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, TypedDict
 from datetime import datetime, timedelta
 from sklearn.model_selection import train_test_split
 
@@ -25,19 +25,42 @@ FEATURE_NAMES = [
     'depth_iteration',
     'count_prompt_orientation',
     'count_prompt_implementation',
-    'count_prompt_verification'
+    'count_prompt_verification',
+    'deliberation_to_action_ratio'
 ]
 
-def compute_c1_features(
-    decisions: List[Dict[str, Any]],
-    events: List[Dict[str, Any]],
-    interactions: List[Dict[str, Any]],
-    session_start: Optional[datetime] = None
-) -> np.ndarray:
+class SessionTelemetry(TypedDict):
+    """Execution contract for behavioral feature extraction.
+    
+    Attributes:
+        decisions: List of chunk-level resolution records.
+        events: Chronological log of editor and terminal events.
+        interactions: Record of chat based turns and phases.
+        session_start: Initiation timestamp of the assessment.
     """
-    Computes 15 features from raw session data.
-    This is the core logic shared between Backend (Serving) and Model (Training/Eval).
+    decisions: List[Dict[str, Any]]
+    events: List[Dict[str, Any]]
+    interactions: List[Dict[str, Any]]
+    session_start: Optional[datetime]
+    precomputed: Optional[Dict[str, float]] # Supporting pre-aggregated legacy/research data
+
+def compute_behavioral_features(data: SessionTelemetry) -> np.ndarray:
+    """Computes behavioral evaluation features from raw session telemetry.
+
+    Serves as the unified feature extraction logic for both real-time serving 
+    (backend) and offline training/evaluation (model).
+
+    Args:
+        data: A SessionTelemetry object containing all raw telemetry materials.
+
+    Returns:
+        A (16,) NumPy array containing the normalized feature vector.
     """
+    decisions = data['decisions']
+    events = data['events']
+    interactions = data['interactions']
+    session_start = data.get('session_start')
+
     feats: Dict[str, float] = {name: 0.0 for name in FEATURE_NAMES}
     
     # 1. Chunk decisions metrics
@@ -65,6 +88,14 @@ def compute_c1_features(
                 edit_rates.append(change)
         if edit_rates:
             feats['rate_post_acceptance_edit'] = sum(edit_rates) / len(edit_rates)
+        
+        # Adversarial Behavioral Metric: deliberation_to_action_ratio
+        # Higher score means more thinking per unit of change (potentially gaming the system)
+        if feats['rate_post_acceptance_edit'] > 0:
+            feats['deliberation_to_action_ratio'] = feats['duration_deliberation_avg'] / feats['rate_post_acceptance_edit']
+        else:
+            # If no edits, but significant deliberation, we cap the ratio to avoid infinity
+            feats['deliberation_to_action_ratio'] = feats['duration_deliberation_avg'] if feats['duration_deliberation_avg'] > 0 else 0.0
 
     # 2. Event based metrics
     total_events = len(events)
@@ -125,37 +156,26 @@ def compute_c1_features(
             if prev_ts and curr_ts and (curr_ts - prev_ts).total_seconds() < 60:
                 reprompts += 1
         feats['ratio_reprompt'] = reprompts / len(interactions)
+        
+        # Frequency and Ratio Normalization for prompt categories
+        total_p = len(interactions)
+        feats['count_prompt_orientation'] /= total_p
+        feats['count_prompt_implementation'] /= total_p
+        feats['count_prompt_verification'] /= total_p
 
     return np.array([feats[name] for name in FEATURE_NAMES], dtype=np.float32)
 
-def extract_behavioral_features(data: Any) -> np.ndarray:
-    """
-    Polymorphic extractor for Component 1 features.
-    Supports:
-    - pd.DataFrame (legacy CUPS aggregation)
-    - Dict with 'decisions', 'events', 'interactions', 'session_start' (serving/raw)
-    """
-    if isinstance(data, pd.DataFrame):
-        # Legacy CUPS logic for training
-        if data.empty:
-            return np.zeros(len(FEATURE_NAMES))
-        row = data.iloc[0]
-        feats = {name: float(row.get(name, np.nan)) for name in FEATURE_NAMES}
-        # Backward compat for CUPS field names if they differ
-        if 'deliberation_time' in row: feats['duration_deliberation_avg'] = float(row['deliberation_time'])
-        
-        return np.array([feats[name] for name in FEATURE_NAMES], dtype=np.float32)
-    
-    if isinstance(data, dict):
-        return compute_c1_features(
-            decisions=data.get('decisions', []),
-            events=data.get('events', []),
-            interactions=data.get('interactions', []),
-            session_start=data.get('session_start')
-        )
+def extract_behavioral_features(data: SessionTelemetry) -> np.ndarray:
+    """Entry point for behavioral feature extraction using a strict data contract.
 
-    logger.error(f"Unsupported data type passed to extract_behavioral_features: {type(data)}")
-    return np.zeros(len(FEATURE_NAMES))
+    Ensures that both training (CUPS) and serving (Backend) paths are 
+    harmonized under a single ingestion format.
+    """
+    if data.get('precomputed'):
+        p = data['precomputed']
+        return np.array([float(p.get(name, 0.0)) for name in FEATURE_NAMES], dtype=np.float32)
+        
+    return compute_behavioral_features(data)
 
 def create_train_val_split(df: pd.DataFrame, test_size: float = 0.2, random_state: int = 42) -> tuple:
     if 'proxy_label' not in df.columns:

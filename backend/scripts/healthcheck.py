@@ -4,12 +4,26 @@ import sqlite3
 import requests
 from dotenv import load_dotenv
 
-def print_status(check_name, status, details=""):
+def print_status(check_name: str, status: bool, details: str = ""):
+    """
+    Renders the clinical status of a health system check to the console.
+
+    Args:
+        check_name: Human-readable identifier for the check.
+        status: Boolean indicating success or failure.
+        details: Optional supplementary information (e.g., file paths, masked keys).
+    """
     color = "\033[92m[OK]\033[0m" if status else "\033[91m[FAIL]\033[0m"
     print(f"{color} {check_name:<30} {details}")
 
 def run_healthcheck():
-    print("\n=== OverSite Pre-Flight Health Check ===\n")
+    """
+    Coordinates a comprehensive verification of the backend environment.
+
+    Validates environment variables, database connectivity/schema, and 
+    the availability of pre-trained model artifacts.
+    """
+    print("\n=== OverSite Platform Health Verification ===\n")
     
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     env_path = os.path.join(base_dir, ".env")
@@ -60,13 +74,13 @@ def run_healthcheck():
         print_status("Database schema initialized", False, "DB file missing")
         sys.exit(1)
 
-    # 4. Check Model Artifacts
+    # 4. Verify Machine Learning Artifact Integrity
     artifacts_dir = os.environ.get("MODEL_ARTIFACTS_DIR", os.path.join(os.path.dirname(base_dir), "model", "models"))
-    c1_path = os.path.join(artifacts_dir, "behavioral_classifier.joblib")
-    c2_path = os.path.join(artifacts_dir, "prompt_quality_classifier.joblib")
+    behavioral_path = os.path.join(artifacts_dir, "behavioral_classifier.joblib")
+    prompt_path = os.path.join(artifacts_dir, "prompt_quality_classifier.joblib")
     
-    has_models = os.path.exists(c1_path) and os.path.exists(c2_path)
-    print_status("Model artifacts available", has_models, artifacts_dir)
+    has_models = os.path.exists(behavioral_path) and os.path.exists(prompt_path)
+    print_status("Behavioral models available", has_models, artifacts_dir)
     
     fallback_mode = os.environ.get("SCORING_FALLBACK_MODE", "false").lower() == "true"
     print_status("SCORING_FALLBACK_MODE", True, str(fallback_mode))

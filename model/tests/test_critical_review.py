@@ -1,10 +1,10 @@
 import pytest
 import os
 import joblib
-from component3 import component3_score
+from critical_review import compute_critical_review_score
 
 def test_zero_decisions_neutral_score():
-    assert component3_score([]) == 3.0
+    assert compute_critical_review_score([]) == 3.0
 
 def test_passive_acceptance_scores_low():
     # 0 edit distance
@@ -15,7 +15,7 @@ def test_passive_acceptance_scores_low():
             'final_code': 'def foo():\n    return 42' # No change
         }
     ]
-    assert component3_score(decisions) == 1.0
+    assert compute_critical_review_score(decisions) == 1.0
 
 def test_slight_modification_scores_medium():
     # Minor edit: changed 42 to 43 (1 char diff on 25 char string) = 4% edit rate -> 1.0
@@ -27,7 +27,7 @@ def test_slight_modification_scores_medium():
             'final_code': 'def foo():\n    return 100'
         }
     ]
-    assert component3_score(decisions) == 2.0
+    assert compute_critical_review_score(decisions) == 2.0
     
 def test_balanced_tweaks_scores_3():
     # Proposed: "def foo():\n    return 42" (24 chars)
@@ -40,13 +40,13 @@ def test_balanced_tweaks_scores_3():
             'final_code': 'def foo():\n    return val * 2'
         }
     ]
-    assert component3_score(decisions) == 3.0
+    assert compute_critical_review_score(decisions) == 3.0
 
-def test_c3_model_loads():
-    model_path = "model/models/component3_xgboost.joblib"
+def test_critical_review_model_loads():
+    model_path = "model/models/critical_review_xgboost.joblib"
     if not os.path.exists(model_path):
         import pytest
-        pytest.skip("C3 model file not found")
+        pytest.skip("Critical review model file not found")
     
     model = joblib.load(model_path)
 
@@ -61,7 +61,7 @@ def test_heavy_modification_scores_high():
         }
     ]
     # This distance is massive (> 60%), expect 5.0
-    assert component3_score(decisions) == 5.0
+    assert compute_critical_review_score(decisions) == 5.0
 
 def test_rejected_chunks_ignored():
     # Rejected code should not drag down the edit rate average
@@ -77,4 +77,4 @@ def test_rejected_chunks_ignored():
             'final_code': 'def foo():\n    return 42' # 0 distance -> 1.0
         }
     ]
-    assert component3_score(decisions) == 1.0
+    assert compute_critical_review_score(decisions) == 1.0

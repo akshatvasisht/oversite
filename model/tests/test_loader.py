@@ -29,7 +29,7 @@ def test_load_cups_returns_dataframe():
     df = load_cups()
     assert isinstance(df, pd.DataFrame)
     if not df.empty:
-        assert 'acceptance_rate' in df.columns
+        assert 'rate_acceptance' in df.columns
 
 def test_load_wildchat_returns_dataframe():
     df = load_wildchat(max_records=2)

@@ -4,7 +4,7 @@ from aggregation import aggregate_scores
 def score_session(profile: str) -> tuple[float, float, float]:
     """
     Simulates the pipeline outputs for specific profiles.
-    Returns (c1_score, c2_score, c3_score)
+    Returns (behavioral_score, prompt_quality_score, critical_review_score)
     """
     if profile == 'strategic':
         # High structural interaction, strong specific prompts, high edit rate

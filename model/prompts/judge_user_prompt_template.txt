@@ -22,4 +22,12 @@ SESSION EXCERPTS
 ----------------
 {{ prompt_excerpts }}
 
-Based strictly on these scores and the provided excerpts of their activity, write the Narrative Report.
+CORE BEHAVIORAL METRICS (RAW)
+-----------------------------
+{{ core_behavioral_metrics }}
+
+STRUCTURAL MODEL EXPLANATIONS (SHAP)
+------------------------------------
+{{ behavior_explanations }}
+
+Based strictly on the weighted scores, the core metrics, and the model explanations provided above, write the Narrative Report.

@@ -15,11 +15,14 @@ class ModelConfig:
     LOW_THRESHOLD: float = 0.33
     HIGH_THRESHOLD: float = 0.66
     
-    # ML Hyperparameters
+    # ML Hyperparameters (Optimized for Top-2 Structural Signal)
     RANDOM_SEED: int = 42
-    C1_N_ESTIMATORS: int = 200
-    C1_MAX_DEPTH: int = 5
-    C1_LEARNING_RATE: float = 0.1
+    BEHAVIORAL_N_ESTIMATORS: int = 50
+    BEHAVIORAL_MAX_DEPTH: int = 3
+    BEHAVIORAL_LEARNING_RATE: float = 0.05
+    BEHAVIORAL_MIN_CHILD_WEIGHT: int = 2
+    BEHAVIORAL_REG_LAMBDA: float = 1.0
+    BEHAVIORAL_REG_ALPHA: float = 0.1
     
     # Data Loading
     WILDCHAT_MAX_RECORDS: int = 5000

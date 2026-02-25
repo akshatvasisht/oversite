@@ -15,12 +15,13 @@ analytics_bp = Blueprint("analytics", __name__)
 @require_role("admin")
 def get_overview():
     """
-    Returns a high-level summary of all candidate sessions.
-    ---
-    Input (Query Params):
-        - completed_only (bool, optional): Filter by ended_at != None. Defaults to false.
-    Output (200):
-        - sessions (list): Array of session summary objects including status and overall labels.
+    Retrieves a high-level summary of all candidate assessment sessions.
+
+    Filterable by completion status. Returns the most recent session 
+    per candidate/project pair.
+
+    Returns:
+        A list of session summaries including status and behavioral labels.
     """
     db = next(get_db())
     try:
@@ -64,15 +65,14 @@ def get_overview():
 @require_role("admin")
 def get_session_analytics(session_id):
     """
-    Returns detailed structural and prompt-quality scores for a specific session.
-    ---
-    Input (Path):
-        - session_id (str): UUID of the target session.
-    Output (200):
-        - combined scores (obj): Structural scores (c1), prompt quality (c2), review (c3), and LLM narrative.
-        - live_metrics (dict): Current calculated feature values.
-    Errors:
-        - 404: Session not found
+    Retrieves detailed behavioral metrics and scoring for a specific session.
+
+    Args:
+        session_id: The unique identifier for the session to analyze.
+
+    Returns:
+        A JSON dictionary containing structural, prompt, and critical review 
+        scores alongside live telemetry metrics.
     """
     db = next(get_db())
     try:
@@ -80,7 +80,7 @@ def get_session_analytics(session_id):
         if not session:
             return jsonify({"error": "Session not found"}), 404
 
-        # 1. Fetch cached scores if any
+        # Prefers cached evaluation results to minimize redundant inference overhead
         score_record = db.query(SessionScore).filter_by(session_id=session_id).first()
         
         score_data = {
@@ -104,7 +104,7 @@ def get_session_analytics(session_id):
                 "fallback_components": json.loads(score_record.fallback_components) if score_record.fallback_components else []
             }
 
-        # 2. Compute live metrics using the same feature extraction used in scoring
+        # 2. Computes live telemetry metrics for real-time dashboard updates
         try:
             features_array = extract_behavioral_features(session_id, db)
             live_metrics = {name: float(val) for name, val in zip(FEATURE_NAMES, features_array)}
@@ -127,16 +127,13 @@ def get_session_analytics(session_id):
 @require_role("admin")
 def force_score_session(session_id):
     """
-    Manually triggers the scoring pipeline for an active session.
-    ---
-    Input (Path):
-        - session_id (str): UUID of the session to score.
-    Output (200):
-        - message (str): Success message.
-        - score_id (str): UUID of the generated score record.
-    Errors:
-        - 404: Session not found
-        - 500: Scoring pipeline error
+    Manually triggers the behavioral evaluation pipeline for a session.
+
+    Args:
+        session_id: UUID of the session to evaluate.
+
+    Returns:
+        A success message and the ID of the generated score record.
     """
     db = next(get_db())
     try:

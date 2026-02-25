@@ -6,54 +6,50 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 def aggregate_scores(
-    c1_score: float, 
-    c2_score: float, 
-    c3_score: float, 
+    behavioral_score: float, 
+    prompt_score: float, 
+    critical_score: float, 
     feature_importances: Dict[str, float] = None
 ) -> Tuple[float, str]:
-    """
-    Aggregates the three component scores into a final weighted score and profiling label.
-    
+    """Aggregates multi-modal evaluation scores into a final weighted performance metric.
+
     Args:
-        c1_score (float): 1.0 - 5.0 (Structural behavior)
-        c2_score (float): 1.0 - 5.0 (Prompt quality)
-        c3_score (float): 1.0 - 5.0 (Critical Review / Post-acceptance edits)
-        feature_importances (Dict[str, float]): The normalized feature importance mapping 
-                                                from Component 1 (or combined C1/C2). 
-                                                Used to dynamically weight the components.
-    
+        behavioral_score: Normalized score representing structural coding behavior.
+        prompt_score: Normalized score reflecting AI prompt engineering quality.
+        critical_score: Normalized score measuring post-acceptance critical review.
+        feature_importances: Optional mapping of feature weights used to dynamically 
+            adjust component bias based on signal confidence.
+
     Returns:
-        Tuple[float, str]: (weighted_score, overall_label)
+        A tuple containing the weighted score (1.0-5.0) and the categorical label.
     """
     
     # Baseline fallback weights if no importances provided or parsing fails
-    w1, w2, w3 = 0.34, 0.33, 0.33
+    w_behavioral, w_prompt, w_critical = 0.34, 0.33, 0.33
     
     if feature_importances:
         try:
             # We attempt to derive component weights from the relative importance of their driving features
-            # Component 1 drives structural features
-            c1_feats = ['deliberation_time_avg', 'verification_frequency', 'time_by_panel_editor_pct']
+            # Behavioral scoring drives structural features
+            behavioral_feats = ['deliberation_time_avg', 'verification_frequency', 'time_by_panel_editor_pct']
             
-            # Component 2 drives textual quality (we don't get these directly in C1 importances, 
-            # but we can look for proxy features if provided, otherwise assume baseline split)
+            # Prompt quality scoring drives textual evaluation. Textual features are not 
+            # directly present in behavioral model importances; defaulting to baseline split.
             
-            # If we only have C1 importances (from XGBoost), we can use the sum of its top features
-            # to determine how strongly we should trust C1 over flat averages.
-            c1_weight = sum(feature_importances.get(f, 0.0) for f in c1_feats)
+            # Adjust weights when structural features from the behavioral model show high relative importance.
+            behavioral_weight = sum(feature_importances.get(f, 0.0) for f in behavioral_feats)
             
-            # Normalizing simplistic weights
-            # For this MVP aggregation layer, if we detect strong C1 features, we bump its weight up slightly.
-            if c1_weight > 0.4:
-                w1, w2, w3 = 0.50, 0.25, 0.25
+            # Normalize weights to prioritize behavioral signals when they meet a high-confidence threshold.
+            if behavioral_weight > 0.4:
+                w_behavioral, w_prompt, w_critical = 0.50, 0.25, 0.25
             else:
-                w1, w2, w3 = 0.34, 0.33, 0.33
+                w_behavioral, w_prompt, w_critical = 0.34, 0.33, 0.33
                 
         except Exception as e:
             logger.warning(f"Failed to parse feature importances for weighting, using default. {e}")
-            w1, w2, w3 = 0.34, 0.33, 0.33
+            w_behavioral, w_prompt, w_critical = 0.34, 0.33, 0.33
     
-    weighted_score = (c1_score * w1) + (c2_score * w2) + (c3_score * w3)
+    weighted_score = (behavioral_score * w_behavioral) + (prompt_score * w_prompt) + (critical_score * w_critical)
     
     # Ensure clipping
     weighted_score = max(1.0, min(5.0, weighted_score))
