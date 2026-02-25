@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
+import ReactMarkdown from 'react-markdown';
 
 interface SessionDetail {
     session_id: string;
@@ -35,6 +36,9 @@ const LABEL_COLOR: Record<string, string> = {
     over_reliant: '#fbbf24',
 };
 
+/**
+ * Renders a compact horizontal bar representing a normalized rubric score.
+ */
 function ScoreBar({ value }: { value: unknown }) {
     const num = typeof value === 'number' && isFinite(value) ? value : null;
     const pct = num !== null ? ((num - 1) / 4) * 100 : 0;
@@ -51,6 +55,9 @@ function ScoreBar({ value }: { value: unknown }) {
     );
 }
 
+/**
+ * Displays a categorized breakdown of evaluation scores across different rubrics.
+ */
 function RubricBreakdown({ structural, promptQuality, review }: {
     structural: Record<string, number> | null;
     promptQuality: Record<string, number> | null;
@@ -71,11 +78,11 @@ function RubricBreakdown({ structural, promptQuality, review }: {
                         ? Object.entries(scores)
                             .filter(([, val]) => typeof val === 'number' || val === null)
                             .map(([key, val]) => (
-                            <div key={key} className="rubric-row">
-                                <span className="rubric-label">{key.replace(/_/g, ' ')}</span>
-                                <ScoreBar value={val} />
-                            </div>
-                        ))
+                                <div key={key} className="rubric-row">
+                                    <span className="rubric-label">{key.replace(/_/g, ' ')}</span>
+                                    <ScoreBar value={val} />
+                                </div>
+                            ))
                         : <p className="muted" style={{ fontSize: 13 }}>Not yet computed.</p>
                     }
                 </div>
@@ -84,6 +91,9 @@ function RubricBreakdown({ structural, promptQuality, review }: {
     );
 }
 
+/**
+ * Controls the polling and rendering of the LLM-generated narrative report.
+ */
 function NarrativeReport({ sessionId, initial }: { sessionId: string; initial: string | null }) {
     const [narrative, setNarrative] = useState<string | null>(initial);
     const [polling, setPolling] = useState(!initial);
@@ -117,8 +127,8 @@ function NarrativeReport({ sessionId, initial }: { sessionId: string; initial: s
 
     if (narrative) {
         return (
-            <div className="narrative-body">
-                <pre className="narrative-text">{narrative}</pre>
+            <div className="narrative-body chat-markdown">
+                <ReactMarkdown>{narrative}</ReactMarkdown>
             </div>
         );
     }
@@ -137,6 +147,9 @@ function NarrativeReport({ sessionId, initial }: { sessionId: string; initial: s
     return <p className="muted" style={{ fontSize: 13 }}>Report unavailable — try refreshing.</p>;
 }
 
+/**
+ * Comprehensive candidate report page displaying scores, metrics, and narratives.
+ */
 export default function ScoreDetailPage() {
     const { candidateId } = useParams<{ candidateId: string }>();
     const navigate = useNavigate();

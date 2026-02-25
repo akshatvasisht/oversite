@@ -3,6 +3,12 @@ import type { ReactNode } from 'react';
 import { AuthContext } from './context/auth';
 import type { Role } from './context/auth';
 
+/**
+ * Provides world-level authentication state and session management.
+ * 
+ * Persists user credentials and active session identifiers to localStorage 
+ * to ensure state continuity across page refreshes.
+ */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [userId, setUserId] = useState<string | null>(localStorage.getItem('userId'));
     const [role, setRole] = useState<Role>((localStorage.getItem('userRole') as Role) || null);

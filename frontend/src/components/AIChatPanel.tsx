@@ -5,6 +5,9 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { useToast } from '../context/ToastContext';
 
+/**
+ * Represents a specific block of code changes within a suggestion.
+ */
 export interface Hunk {
     start_line: number;
     end_line: number;
@@ -12,12 +15,18 @@ export interface Hunk {
     proposed_code: string;
 }
 
+/**
+ * Interface for a code modification suggestion pending candidate review.
+ */
 export interface PendingSuggestion {
     suggestionId: string;
     hunks: Hunk[];
     shownAt: string;
 }
 
+/**
+ * Internal message representation for the chat thread.
+ */
 interface Message {
     id: string;
     role: 'user' | 'ai' | 'system';
@@ -26,11 +35,17 @@ interface Message {
     hasSuggestion?: boolean;
 }
 
+/**
+ * Chat history entry formatted for LLM context injection.
+ */
 interface HistoryEntry {
     role: 'user' | 'model';
     content: string;
 }
 
+/**
+ * Props for the AIChatPanel component.
+ */
 interface AIChatPanelProps {
     sessionId: string | null;
     activeFileId: string | null;
@@ -42,12 +57,17 @@ interface AIChatPanelProps {
 
 const CODE_BLOCK_RE = /```[\w]*\n?([\s\S]*?)```/;
 
+/**
+ * Parses Markdown code blocks from LLM responses to isolate proposed code changes.
+ */
 function extractProposedCode(text: string): string | null {
     const match = CODE_BLOCK_RE.exec(text);
     return match ? match[1].trim() : null;
 }
 
-
+/**
+ * Renders individual message bubbles with Markdown support for AI responses.
+ */
 function MessageContent({ content, role }: { content: string; role: 'user' | 'ai' | 'system' }) {
     if (role !== 'ai') {
         return <pre className="chat-text">{content}</pre>;
@@ -56,7 +76,7 @@ function MessageContent({ content, role }: { content: string; role: 'user' | 'ai
         <div className="chat-markdown">
             <ReactMarkdown
                 components={{
-                    code({ className, children, ...props }) {
+                    code({ children, ...props }) {
                         const isBlock = !props.ref;
                         return isBlock
                             ? <code className="chat-code-block">{children}</code>
@@ -70,6 +90,12 @@ function MessageContent({ content, role }: { content: string; role: 'user' | 'ai
     );
 }
 
+/**
+ * Interactive chat interface for candidate-LLM collaboration.
+ * 
+ * Manages message history, handles prompt submission, and coordinates 
+ * with the suggestion engine to provide inline code modifications.
+ */
 export default function AIChatPanel({
     sessionId,
     activeFileId,
@@ -91,6 +117,36 @@ export default function AIChatPanel({
             threadRef.current.scrollTop = threadRef.current.scrollHeight;
         }
     }, [messages]);
+
+    useEffect(() => {
+        if (!sessionId) return;
+
+        const loadHistory = async () => {
+            try {
+                const response = await api.get('/ai/history');
+                const { messages: histMessages } = response.data as { messages: Array<{ role: string; content: string; timestamp: string; interaction_id: string }> };
+
+                const formattedMessages: Message[] = histMessages.map((m) => ({
+                    id: m.interaction_id,
+                    role: m.role as 'user' | 'ai' | 'system',
+                    content: m.content,
+                    timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+                }));
+
+                const formattedHistory: HistoryEntry[] = histMessages.map((m) => ({
+                    role: m.role === 'ai' ? 'model' : 'user',
+                    content: m.content,
+                }));
+
+                setMessages(formattedMessages);
+                setHistory(formattedHistory);
+            } catch {
+                // Silently fail if history cannot be loaded
+            }
+        };
+
+        void loadHistory();
+    }, [sessionId]);
 
     const addMessage = (role: Message['role'], content: string, extra?: Partial<Message>): string => {
         const id = `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -170,10 +226,10 @@ export default function AIChatPanel({
         } finally {
             setLoading(false);
         }
-    }, [input, loading, sessionId, activeFileId, activeContent, history, pendingSuggestion, onSuggestion, onResolvePending]);
+    }, [input, loading, sessionId, activeFileId, activeContent, history, pendingSuggestion, onSuggestion, onResolvePending, showToast]);
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             void send();
         }
@@ -223,7 +279,7 @@ export default function AIChatPanel({
             <div className="chat-input-area">
                 <Textarea
                     rows={3}
-                    placeholder="Ask AI for help... (Cmd+Enter to send)"
+                    placeholder="Ask AI for help... (Enter to send, Shift+Enter for newline)"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -231,7 +287,7 @@ export default function AIChatPanel({
                     className="chat-textarea"
                 />
                 <div className="chat-send-row">
-                    <span className="chat-hint">⌘↵ to send</span>
+                    <span className="chat-hint">↵ to send, ⇧↵ for newline</span>
                     <Button onClick={() => void send()} disabled={loading || !input.trim() || !sessionId} size="sm">
                         {loading ? 'Sending...' : 'Send'}
                     </Button>

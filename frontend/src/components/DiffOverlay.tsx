@@ -1,10 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import * as monaco from 'monaco-editor';
 import api from '../api';
 import { useToast } from '../context/ToastContext';
 import type { PendingSuggestion, Hunk } from './AIChatPanel';
 
+/**
+ * Props for the DiffOverlay component.
+ */
 interface DiffOverlayProps {
     editor: monaco.editor.IStandaloneCodeEditor | null;
     monacoApi: typeof monaco | null;
@@ -37,6 +40,12 @@ class HunkContentWidget implements monaco.editor.IContentWidget {
     }
 }
 
+/**
+ * Monaco Editor overlay for reviewing and applying AI-generated code changes.
+ * 
+ * Uses Monaco ContentWidgets and EditorDecorations to render inline hunks 
+ * with Accept/Reject controls.
+ */
 export function DiffOverlay({
     editor,
     monacoApi,
@@ -45,79 +54,15 @@ export function DiffOverlay({
     onFileUpdate,
 }: DiffOverlayProps) {
     const { showToast } = useToast();
-    const [portals, setPortals] = useState<React.ReactPortal[]>([]);
+    const [widgetNodes, setWidgetNodes] = useState<Map<number, HTMLElement>>(new Map());
     const decorationsCollection = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
     const widgetsRef = useRef<Map<number, HunkContentWidget>>(new Map());
     const decisionsRef = useRef<Map<number, string>>(new Map()); // chunkIndex -> decision
 
-    // Setup / Teardown
-    useEffect(() => {
-        if (!editor || !monacoApi) return;
-
-        const cleanup = () => {
-            if (decorationsCollection.current) {
-                decorationsCollection.current.clear();
-                decorationsCollection.current = null;
-            }
-            widgetsRef.current.forEach(w => editor.removeContentWidget(w));
-            widgetsRef.current.clear();
-            setPortals([]);
-            decisionsRef.current.clear();
-        };
-
-        if (!pendingSuggestion) {
-            cleanup();
-            return;
-        }
-
-        cleanup();
-
-        const newDecorations: monaco.editor.IModelDeltaDecoration[] = [];
-        const newPortals: React.ReactPortal[] = [];
-
-        pendingSuggestion.hunks.forEach((hunk, index) => {
-            // Add background decoration
-            // If start_line and end_line are the same or valid range
-            newDecorations.push({
-                range: new monacoApi.Range(hunk.start_line, 1, hunk.end_line, 1),
-                options: {
-                    isWholeLine: true,
-                    className: 'diff-decoration-modified',
-                    linesDecorationsClassName: 'diff-decoration-margin',
-                }
-            });
-
-            // Add widget
-            const widget = new HunkContentWidget(index, hunk.start_line);
-            editor.addContentWidget(widget);
-            widgetsRef.current.set(index, widget);
-
-            // Create portal
-            const portal = createPortal(
-                <HunkAction
-                    hunk={hunk}
-                    chunkIndex={index}
-                    suggestionId={pendingSuggestion.suggestionId}
-                    shownAt={pendingSuggestion.shownAt}
-                    onDecide={(decision, finalCode) => handleDecide(index, decision, finalCode, pendingSuggestion.suggestionId)}
-                />,
-                widget.domNode
-            );
-            newPortals.push(portal);
-        });
-
-        decorationsCollection.current = editor.createDecorationsCollection(newDecorations);
-
-        setPortals(newPortals);
-
-        return cleanup;
-    }, [editor, monacoApi, pendingSuggestion]);
-
-    const handleDecide = async (chunkIndex: number, decision: 'accepted' | 'rejected' | 'modified', finalCode: string, suggestionId: string) => {
+    const handleDecide = React.useCallback(async (chunkIndex: number, decision: 'accepted' | 'rejected' | 'modified', finalCode: string, suggestionId: string) => {
         if (!editor || !monacoApi || !pendingSuggestion) return;
 
-        // Send to backend
-        const timeMs = 2500; // Mock derived time or calculated via shownAt
+        const timeMs = 2500;
         try {
             await api.post(`/suggestions/${suggestionId}/chunks/${chunkIndex}/decide`, {
                 decision,
@@ -130,20 +75,17 @@ export function DiffOverlay({
             showToast("Failed to save decision", "error");
         }
 
-        // Apply text if accepted or modified
         if (decision === 'accepted' || decision === 'modified') {
             const model = editor.getModel();
             if (model && decorationsCollection.current) {
                 const ranges = decorationsCollection.current.getRanges();
-                // Since decorations Collection maintains order, ranges[chunkIndex] is this hunk's current shifted range
                 const currentRange = ranges[chunkIndex];
                 if (currentRange) {
-                    // We do a pushEditOperations to allow undo and shift decorations
                     model.pushEditOperations(
                         [],
                         [{
                             range: new monacoApi.Range(currentRange.startLineNumber, 1, currentRange.endLineNumber, model.getLineMaxColumn(currentRange.endLineNumber)),
-                            text: finalCode + (finalCode.endsWith('\n') ? '' : '\n') // assure trailing newline
+                            text: finalCode + (finalCode.endsWith('\n') ? '' : '\n')
                         }],
                         () => null
                     );
@@ -152,28 +94,23 @@ export function DiffOverlay({
             }
         }
 
-        // Hide the widget
         const widget = widgetsRef.current.get(chunkIndex);
         if (widget) {
             editor.removeContentWidget(widget);
         }
         decisionsRef.current.set(chunkIndex, decision);
-
-        // Remove just this portal
-        // we can keep portals state updated or just let it unmount by filtering
-        setPortals(prev => {
-            // We shouldn't blindly filter by index because matching portal to index is tricky.
-            // But since we built them in order, we could just return null for this index in the render.
-            // Actually, React doesn't mind if we leave the portal but clear the DOM node, but it's cleaner to remove it.
-            // For simplicity we will tell the component to hide itself.
-            return prev;
+        // Remove from state to hide portal
+        queueMicrotask(() => {
+            setWidgetNodes(prev => {
+                const next = new Map(prev);
+                next.delete(chunkIndex);
+                return next;
+            });
         });
 
-        // Check if all chunks decided
         if (decisionsRef.current.size === pendingSuggestion.hunks.length) {
-            onResolvePending(); // cleans up everything
+            onResolvePending();
         } else {
-            // Update widget positions because lines might have shifted
             if (decorationsCollection.current) {
                 const newRanges = decorationsCollection.current.getRanges();
                 widgetsRef.current.forEach((w, idx) => {
@@ -184,9 +121,76 @@ export function DiffOverlay({
                 });
             }
         }
-    };
+    }, [editor, monacoApi, pendingSuggestion, showToast, onFileUpdate, onResolvePending]);
 
-    return <>{portals}</>;
+    // Setup / Teardown
+    useLayoutEffect(() => {
+        if (!editor || !monacoApi) return;
+
+        const cleanup = () => {
+            if (decorationsCollection.current) {
+                decorationsCollection.current.clear();
+                decorationsCollection.current = null;
+            }
+            widgetsRef.current.forEach(w => editor.removeContentWidget(w));
+            widgetsRef.current.clear();
+            setWidgetNodes(new Map());
+            decisionsRef.current.clear();
+        };
+
+        if (!pendingSuggestion) {
+            cleanup();
+            return;
+        }
+
+        cleanup();
+
+        const newDecorations: monaco.editor.IModelDeltaDecoration[] = [];
+        const newNodes = new Map<number, HTMLElement>();
+
+        pendingSuggestion.hunks.forEach((hunk, index) => {
+            newDecorations.push({
+                range: new monacoApi.Range(hunk.start_line, 1, hunk.end_line, 1),
+                options: {
+                    isWholeLine: true,
+                    className: 'diff-decoration-modified',
+                    linesDecorationsClassName: 'diff-decoration-margin',
+                }
+            });
+
+            const widget = new HunkContentWidget(index, hunk.start_line);
+            editor.addContentWidget(widget);
+            widgetsRef.current.set(index, widget);
+            newNodes.set(index, widget.domNode);
+        });
+
+        decorationsCollection.current = editor.createDecorationsCollection(newDecorations);
+        queueMicrotask(() => setWidgetNodes(newNodes));
+
+        return cleanup;
+    }, [editor, monacoApi, pendingSuggestion]);
+
+    if (!pendingSuggestion) return null;
+
+    return (
+        <>
+            {pendingSuggestion.hunks.map((hunk, index) => {
+                const node = widgetNodes.get(index);
+                if (!node) return null;
+
+                return createPortal(
+                    <HunkAction
+                        hunk={hunk}
+                        chunkIndex={index}
+                        suggestionId={pendingSuggestion.suggestionId}
+                        shownAt={pendingSuggestion.shownAt}
+                        onDecide={(d, c) => handleDecide(index, d, c, pendingSuggestion.suggestionId)}
+                    />,
+                    node
+                );
+            })}
+        </>
+    );
 }
 
 interface HunkActionProps {

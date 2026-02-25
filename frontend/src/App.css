@@ -1,33 +1,33 @@
 /* ── Design Tokens ─────────────────────────────── */
 :root {
-  --bg-base:        #1a1a1a;
-  --bg-surface:     #262626;
-  --bg-elevated:    #2d2d2d;
-  --bg-hover:       #333333;
-  --border:         #3a3a3a;
-  --border-subtle:  #2e2e2e;
-  --text-primary:   #e5e5e5;
-  --text-muted:     #8a8a8a;
-  --text-faint:     #555555;
-  --primary:        #3b82f6;
-  --primary-hover:  #2563eb;
-  --success:        #22c55e;
-  --warning:        #f59e0b;
-  --danger:         #ef4444;
-  --code-bg:        #0d1117;
+  --bg-base: #1a1a1a;
+  --bg-surface: #262626;
+  --bg-elevated: #2d2d2d;
+  --bg-hover: #333333;
+  --border: #3a3a3a;
+  --border-subtle: #2e2e2e;
+  --text-primary: #e5e5e5;
+  --text-muted: #8a8a8a;
+  --text-faint: #555555;
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --code-bg: #0d1117;
 
   /* Legacy aliases used by shadcn components */
-  --background:           var(--bg-base);
-  --foreground:           var(--text-primary);
-  --muted-foreground:     var(--text-muted);
-  --border-color:         var(--border);
-  --card:                 var(--bg-surface);
-  --primary-color:        var(--primary);
-  --primary-foreground:   #ffffff;
-  --secondary:            var(--bg-hover);
+  --background: var(--bg-base);
+  --foreground: var(--text-primary);
+  --muted-foreground: var(--text-muted);
+  --border-color: var(--border);
+  --card: var(--bg-surface);
+  --primary-color: var(--primary);
+  --primary-foreground: #ffffff;
+  --secondary: var(--bg-hover);
   --secondary-foreground: var(--text-primary);
-  --accent:               #1e3a5f;
-  --danger-color:         var(--danger);
+  --accent: #1e3a5f;
+  --danger-color: var(--danger);
 }
 
 /* ── Reset & Base ──────────────────────────────── */
@@ -43,7 +43,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-code, pre, .mono {
+code,
+pre,
+.mono {
   font-family: 'JetBrains Mono', Consolas, 'Courier New', monospace;
 }
 
@@ -229,6 +231,8 @@ code, pre, .mono {
   border-radius: 10px;
   overflow: hidden;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .question-card:hover:not(.done) {
@@ -249,9 +253,15 @@ code, pre, .mono {
 }
 
 .question-content {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 14px;
   padding: 16px;
+  flex: 1;
+}
+
+.question-content button {
+  margin-top: auto;
 }
 
 .question-content h2 {
@@ -281,6 +291,19 @@ code, pre, .mono {
   color: var(--primary);
   letter-spacing: -0.3px;
   white-space: nowrap;
+}
+
+.session-topbar-brand.clickable {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.15s ease;
+  font-family: inherit;
+}
+
+.session-topbar-brand.clickable:hover {
+  opacity: 0.7;
 }
 
 .session-topbar-sep {
@@ -512,6 +535,7 @@ code, pre, .mono {
   border: none;
   background: transparent;
   transition: background 0.1s, color 0.1s;
+  cursor: pointer;
 }
 
 .file-item:hover {
@@ -523,10 +547,94 @@ code, pre, .mono {
   background: rgba(59, 130, 246, 0.15);
   color: var(--primary);
   border-left: 2px solid var(--primary);
-  padding-left: 10px;
 }
 
-/* ── Terminal ───────────────────────────────────── */
+.folder-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.folder-toggle:hover {
+  background: var(--bg-hover);
+}
+
+.folder-carat {
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 14px;
+  transition: transform 0.2s ease;
+  color: var(--text-faint);
+}
+
+.folder-carat.open {
+  transform: rotate(90deg);
+}
+
+.markdown-content {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.markdown-content h2, 
+.markdown-content h3 {
+  margin-top: 20px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.markdown-content p {
+  margin: 0 0 12px;
+}
+
+.markdown-content code {
+  background: var(--bg-secondary);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid var(--border-subtle);
+}
+
+.markdown-content pre {
+  background: var(--bg-secondary);
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+  border: 1px solid var(--border-subtle);
+}
+
+.markdown-content blockquote {
+  border-left: 3px solid var(--primary);
+  margin: 0 0 16px;
+  padding: 8px 16px;
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.markdown-content ul, 
+.markdown-content ol {
+  padding-left: 20px;
+  margin-bottom: 16px;
+}
+
+.markdown-content li {
+  margin-bottom: 4px;
+}
 .terminal-pane {
   border-top: 1px solid var(--border);
   display: flex;
@@ -766,12 +874,27 @@ code, pre, .mono {
   animation: chat-bounce 1.2s infinite ease-in-out;
 }
 
-.chat-dot:nth-child(2) { animation-delay: 0.2s; }
-.chat-dot:nth-child(3) { animation-delay: 0.4s; }
+.chat-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.chat-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
 
 @keyframes chat-bounce {
-  0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
-  40% { transform: scale(1); opacity: 1; }
+
+  0%,
+  80%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.4;
+  }
+
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .chat-suggestion-banner {
@@ -1005,8 +1128,13 @@ code, pre, .mono {
 }
 
 @keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* ── shadcn UI Components (dark theme) ──────────── */

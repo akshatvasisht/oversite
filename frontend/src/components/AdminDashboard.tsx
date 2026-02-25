@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 
 interface SessionRow {
@@ -25,6 +26,12 @@ function fmt(iso: string | null): string {
     return new Date(iso).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
 }
 
+/**
+ * Administrative overview of all candidate assessment sessions.
+ * 
+ * Provides a high-level summary of session status, evaluation labels, 
+ * and weighted performance scores.
+ */
 export default function AdminDashboard() {
     const { logout } = useAuth();
     const navigate = useNavigate();
@@ -38,7 +45,7 @@ export default function AdminDashboard() {
                 setSessions((res.data as { sessions: SessionRow[] }).sessions ?? []);
             })
             .catch(() => {
-                setError('Analytics endpoint not available yet.');
+                setError('Analytics service is currently unreachable. Please ensure the backend is running.');
             })
             .finally(() => setLoading(false));
     }, []);
@@ -53,11 +60,35 @@ export default function AdminDashboard() {
                 <Button variant="outline" onClick={logout}>Logout</Button>
             </header>
 
-            {loading && <p className="muted">Loading sessions...</p>}
-            {error && <p className="muted" style={{ fontStyle: 'italic' }}>{error}</p>}
+            {loading && (
+                <div className="flex items-center justify-center p-12">
+                    <p className="muted animate-pulse">Loading candidate sessions...</p>
+                </div>
+            )}
+
+            {error && (
+                <Card className="border-red-200 bg-red-50/50 mt-8">
+                    <CardHeader>
+                        <CardTitle className="text-red-700">Connection Error</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-red-600">{error}</p>
+                    </CardContent>
+                </Card>
+            )}
 
             {!loading && sessions.length === 0 && !error && (
-                <p className="muted">No sessions yet. Candidates will appear here once they submit.</p>
+                <Card className="mt-8 border-dashed">
+                    <CardHeader>
+                        <CardTitle className="text-center text-muted-foreground">No Sessions Yet</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-center">
+                        <p className="muted max-w-md mx-auto">
+                            Candidates will appear here once they start their assessments.
+                            Share your assessment links to start collecting data.
+                        </p>
+                    </CardContent>
+                </Card>
             )}
 
             {sessions.length > 0 && (

@@ -16,6 +16,9 @@ interface MonacoEditorWrapperProps {
     sessionId?: string | null;
 }
 
+/**
+ * React wrapper for the Monaco Editor with telemetry and diff overlay support.
+ */
 const MonacoEditorWrapper: React.FC<MonacoEditorWrapperProps> = ({
     fileId,
     content,

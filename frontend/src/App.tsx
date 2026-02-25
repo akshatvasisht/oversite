@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, type ReactElement } from 'react';
+import { useState, useEffect, useCallback, useRef, type ReactElement } from 'react';
+import ReactMarkdown from 'react-markdown';
 import api from './api';
 import { BrowserRouter as Router, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
@@ -21,7 +22,12 @@ import './App.css';
 
 const LOGIN_GLITCH_COLORS = ['#2a2618', '#b8860b', '#f0c14b', '#5c4a1a', '#e6b422'];
 
-const LoginPage = () => {
+/**
+ * Component for candidate and administrator authentication.
+ * 
+ * Supports automated credential normalization for demo utility.
+ */
+const LoginPage: React.FC = () => {
   const { login, isAuthenticated, role } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
@@ -31,16 +37,16 @@ const LoginPage = () => {
   }
 
   const signInAs = async (user: string): Promise<void> => {
-    const normalized = user.trim().toLowerCase();
-    const pwd = normalized === 'admin1' || normalized === 'admin' ? 'admin123' : 'password123';
-    const uName = normalized === 'admin' ? 'admin1'
-      : normalized === 'testuser1' ? 'candidate1'
-      : normalized === 'testuser2' ? 'candidate2'
-      : normalized;
+    const uName = user.trim().toLowerCase();
 
     try {
-      const resp = await api.post('/auth/login', { username: uName, password: pwd });
-      const { userId: loginUserId, role: loginRole, token } = resp.data;
+      const resp = await api.post('/auth/login', { username: uName });
+      const { userId: loginUserId, role: loginRole, token, message } = resp.data;
+      if (token === 'reset-success') {
+        alert(message || 'Database reset successfully.');
+        window.location.reload();
+        return;
+      }
       login(loginUserId, loginRole, token);
       navigate(loginRole === 'admin' ? '/admin' : '/questions', { replace: true });
     } catch (err) {
@@ -64,39 +70,53 @@ const LoginPage = () => {
         <p className="login-brand">OverSite</p>
         <p className="login-tagline">AI allowed. Usage reported.</p>
         <Card className="login-card">
-        <CardHeader>
-          <CardTitle>Sign In</CardTitle>
-          <CardDescription>Sign in to your account to continue.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (username.trim()) signInAs(username);
-            }}
-            className="login-form"
-          >
-            <label htmlFor="username" style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>Username</label>
-            <Input
-              id="username"
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-              placeholder="Enter your username"
-              autoComplete="username"
-            />
-            <Button type="submit">Sign In</Button>
-          </form>
-        </CardContent>
-      </Card>
+          <CardHeader>
+            <CardTitle>Sign In</CardTitle>
+            <CardDescription>Sign in to your account to continue.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (username.trim()) signInAs(username);
+              }}
+              className="login-form"
+            >
+              <label htmlFor="username" style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>Username</label>
+              <Input
+                id="username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder="Enter your username"
+                autoComplete="username"
+              />
+              <Button type="submit">Sign In</Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 };
 
-const QuestionsPage = () => {
+interface Assessment {
+  id: string;
+  title: string;
+  description: string;
+  company: string;
+  status: 'not started' | 'in progress' | 'submitted';
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  duration: string;
+  files?: string[];
+}
+
+/**
+ * Dashboard listing active and completed assessments for the candidate.
+ */
+const QuestionsPage: React.FC = () => {
   const { role, userId, logout } = useAuth();
   const navigate = useNavigate();
-  const [questions, setQuestions] = useState<any[]>([]);
+  const [questions, setQuestions] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -152,7 +172,7 @@ const QuestionsPage = () => {
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{question.duration}</span>
                 <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>·</span>
                 <span style={{ fontSize: 11, color: 'var(--text-faint)', fontFamily: "'JetBrains Mono', monospace" }}>
-                  {question.files.join('  ')}
+                  {question.files?.join('  ')}
                 </span>
               </div>
               <Button
@@ -170,7 +190,13 @@ const QuestionsPage = () => {
 };
 
 
-const SessionPage = () => {
+/**
+ * Core assessment workspace providing a multi-pane IDE environment.
+ * 
+ * Orchestrates interactions between the file explorer, code editor, 
+ * terminal, and AI assistant.
+ */
+const SessionPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [terminalLines, setTerminalLines] = useState<string[]>([
@@ -217,6 +243,7 @@ const SessionPage = () => {
   };
 
   const { userId, setSessionId } = useAuth();
+
   const {
     loading,
     error,
@@ -230,11 +257,17 @@ const SessionPage = () => {
     updateActiveContent,
     saveEditorEvent,
     initialElapsedSeconds,
+    description,
+    title,
+    difficulty,
+    duration,
   } = useSession({
     routeSessionId: id ?? 'test',
     username: userId ?? 'candidate',
     setSessionIdInContext: setSessionId,
   });
+
+  // Configure background autosave for incremental edit tracking
   const { status: autosaveStatus } = useAutosave({
     fileId: activeFile?.fileId ?? null,
     content: activeContent,
@@ -271,35 +304,25 @@ const SessionPage = () => {
   };
 
   const runCode = (): Promise<void> => execute(activeFile?.filename ?? 'main.py');
-  const runTests = (): Promise<void> => execute('tests/test_cart.py');
 
+  const runTests = (): Promise<void> => {
+    // Dynamic Test Discovery: Prefer 'tests/' directory, fall back to files starting with 'test_'
+    const hasTestDir = files.some(f => f.filename.startsWith('tests/'));
+    if (hasTestDir) return execute('tests/');
+
+    const testFile = files.find(f =>
+      f.filename.startsWith('test_') ||
+      (f.filename.includes('/') && f.filename.split('/').pop()?.startsWith('test_'))
+    );
+    return execute(testFile?.filename ?? 'tests/');
+  };
+
+  // Initialize the timer from the baseline provided by the server
   useEffect(() => {
     setElapsedSeconds(initialElapsedSeconds);
   }, [initialElapsedSeconds]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setElapsedSeconds(prev => prev + 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handlePhaseChange = async (phase: 'orientation' | 'implementation' | 'verification') => {
-    setActivePhase(phase);
-    try {
-      await api.patch('/session/phase', { phase });
-    } catch (err) {
-      console.error('Failed to update phase', err);
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
-  const confirmSubmit = async (): Promise<void> => {
+  const confirmSubmit = useCallback(async (): Promise<void> => {
     if (!sessionId) return;
     setSubmitting(true);
     try {
@@ -312,7 +335,60 @@ const SessionPage = () => {
       setShowSubmitModal(false);
       navigate('/questions');
     }
+  }, [sessionId, showToast, navigate]);
+
+  // Tick the timer every second locally, reset when session changes
+  useEffect(() => {
+    if (sessionId === null || !duration) return;
+
+    const limitSeconds = parseDurationToSeconds(duration);
+
+    const interval = setInterval(() => {
+      setElapsedSeconds(prev => {
+        const next = prev + 1;
+
+        // 5-minute warning (strictly at 300 seconds remaining)
+        if (limitSeconds - next === 300) {
+          showToast('5 Minutes Remaining! Finalize your solution.', 'warning');
+        }
+
+        // Auto-submission at expiry
+        if (next >= limitSeconds) {
+          clearInterval(interval);
+          void confirmSubmit();
+          return limitSeconds;
+        }
+
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [sessionId, duration, confirmSubmit, showToast]);
+
+  const handlePhaseChange = async (phase: 'orientation' | 'implementation' | 'verification') => {
+    setActivePhase(phase);
+    try {
+      await api.patch('/session/phase', { phase });
+    } catch (err) {
+      console.error('Failed to update phase', err);
+    }
   };
+
+  const parseDurationToSeconds = (dur: string): number => {
+    const parts = dur.toLowerCase().split(' ');
+    const num = parseInt(parts[0], 10);
+    if (isNaN(num)) return 3600; // Default 1hr
+    if (dur.includes('min')) return num * 60;
+    if (dur.includes('hr') || dur.includes('hour')) return num * 3600;
+    return num;
+  };
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
 
   if (loading) {
     return (
@@ -347,7 +423,13 @@ const SessionPage = () => {
       <div className="ide-wrapper">
         {/* Top nav bar */}
         <div className="session-topbar">
-          <span className="session-topbar-brand">OverSite</span>
+          <button
+            className="session-topbar-brand clickable"
+            onClick={() => navigate('/questions')}
+            title="Return to Dashboard"
+          >
+            OverSite
+          </button>
           <span className="session-topbar-sep">›</span>
           <span className="session-topbar-title">Session {id}</span>
 
@@ -373,7 +455,10 @@ const SessionPage = () => {
           </div>
 
           <div className="session-topbar-actions">
-            <div className="session-timer">{formatTime(elapsedSeconds)}</div>
+            <div className="session-timer">
+              {formatTime(elapsedSeconds)}
+              <span style={{ opacity: 0.5, marginLeft: 4, fontSize: '0.85em' }}>/ {duration}</span>
+            </div>
             <Badge variant="secondary" className="status-pill">
               {autosaveLabel}
             </Badge>
@@ -391,62 +476,22 @@ const SessionPage = () => {
             >
               ✓ Test
             </Button>
-            <Button
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); setShowSubmitModal(true); }}
-            >
-              Submit
-            </Button>
           </div>
         </div>
 
-        {/* IDE panels */}
+        {/* Main interactive shell containing resizable assessment panes */}
         <div className="ide-shell">
           <section className="problem-pane" style={{ width: leftWidth, minWidth: leftWidth }} onClick={() => sendPanelEvent('orientation')}>
             <div className="pane-title">Problem</div>
             <div className="pane-body">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <h2 style={{ margin: 0 }}>Shopping Cart Debugger</h2>
-                <Badge variant="warning">Medium</Badge>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>{title || 'Loading...'}</h2>
+                <Badge variant="warning">{difficulty || 'Medium'}</Badge>
               </div>
 
-              <p style={{ marginTop: 0 }}>
-                Your team's e-commerce checkout is generating <strong>incorrect totals</strong> when
-                customers use a discount coupon on a large order. QA has confirmed the bug only
-                appears when <em>both</em> a coupon code and a quantity-based discount are active at
-                the same time.
-              </p>
-
-              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '16px 0 8px' }}>The Bug</h3>
-              <p style={{ margin: '0 0 12px' }}>
-                The <code style={{ background: 'var(--code-bg)', padding: '1px 5px', borderRadius: 4, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>DiscountEngine.apply()</code> method
-                in <code style={{ background: 'var(--code-bg)', padding: '1px 5px', borderRadius: 4, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>discount.py</code> applies
-                discounts in the wrong order, causing customers to be <strong>undercharged</strong>.
-              </p>
-
-              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '16px 0 8px' }}>Example</h3>
-              <div style={{ background: 'var(--code-bg)', borderRadius: 6, padding: '10px 12px', fontSize: 12, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.7, color: '#c9d1d9', marginBottom: 12 }}>
-                <div style={{ color: '#8b949e' }}># 5 shirts @ $25 + coupon SAVE20</div>
-                <div>subtotal = $125.00</div>
-                <div style={{ color: '#f87171' }}>wrong  → $125×0.80=$100 − $7.50 = <strong>$92.50</strong></div>
-                <div style={{ color: '#4ade80' }}>correct→ $125−$7.50=$117.50 × 0.80 = <strong>$94.00</strong></div>
+              <div className="markdown-content">
+                <ReactMarkdown>{description}</ReactMarkdown>
               </div>
-
-              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '16px 0 8px' }}>Your Task</h3>
-              <ul style={{ margin: '0 0 12px', paddingLeft: 18 }}>
-                <li>Read <code style={{ background: 'var(--code-bg)', padding: '1px 4px', borderRadius: 3, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>discount.py</code>, <code style={{ background: 'var(--code-bg)', padding: '1px 4px', borderRadius: 3, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>cart.py</code>, and <code style={{ background: 'var(--code-bg)', padding: '1px 4px', borderRadius: 3, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>product.py</code></li>
-                <li>Identify the ordering bug in <code style={{ background: 'var(--code-bg)', padding: '1px 4px', borderRadius: 3, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>DiscountEngine.apply()</code></li>
-                <li>Fix it so all tests in <code style={{ background: 'var(--code-bg)', padding: '1px 4px', borderRadius: 3, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>tests/test_cart.py</code> pass</li>
-                <li>Add a comment explaining the correct order</li>
-              </ul>
-
-              <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '16px 0 8px' }}>Discount Rules</h3>
-              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
-                <li>Quantity tiers: 3+ units → $0.75/unit, 5+ → $1.50/unit, 10+ → $3.00/unit</li>
-                <li>Coupons: SAVE10 (10% off), SAVE20 (20% off), HALFOFF (50% off)</li>
-                <li>Quantity discounts apply first; percentage applies to the reduced total</li>
-              </ul>
-
               {error && <p className="error-text" style={{ marginTop: 12 }}>{error}</p>}
             </div>
           </section>
@@ -490,6 +535,7 @@ const SessionPage = () => {
           <section className="assistant-pane" style={{ width: rightWidth, minWidth: rightWidth }} onClick={() => sendPanelEvent('chat')}>
             <div className="pane-title">AI Assistant</div>
             <AIChatPanel
+              key={sessionId}
               sessionId={sessionId}
               activeFileId={activeFileId}
               activeContent={activeContent}
@@ -509,12 +555,23 @@ const SessionPage = () => {
             </div>
           </section>
         </div>
-      </div>
+      </div >
     </>
   );
 };
 
-const ProtectedRoute = ({ children, allowedRole }: { children: ReactElement, allowedRole?: 'admin' | 'candidate' }) => {
+/**
+ * Properties for the ProtectedRoute component.
+ */
+interface ProtectedRouteProps {
+  children: ReactElement;
+  allowedRole?: 'admin' | 'candidate';
+}
+
+/**
+ * Higher-order component for enforcing role-based access control on frontend routes.
+ */
+const ProtectedRoute = ({ children, allowedRole }: ProtectedRouteProps) => {
   const { isAuthenticated, role } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
@@ -525,7 +582,10 @@ const ProtectedRoute = ({ children, allowedRole }: { children: ReactElement, all
   return children;
 };
 
-const AppRoutes = () => {
+/**
+ * Defines the primary routing structure for the application.
+ */
+const AppRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
@@ -538,7 +598,10 @@ const AppRoutes = () => {
   );
 };
 
-function App() {
+/**
+ * Root application component providing global context and providers.
+ */
+function App(): ReactElement {
   return (
     <AuthProvider>
       <ToastProvider>

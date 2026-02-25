@@ -4,7 +4,8 @@ const api = axios.create({
     baseURL: 'http://localhost:8000/api/v1',
 });
 
-// Interceptor to add X-Session-ID and Authorization if they exist in localStorage
+// Request interceptor to attach telemetry headers and authentication tokens.
+// Injects X-Session-ID and Authorization headers from local persistence.
 api.interceptors.request.use((config) => {
     const sessionId = localStorage.getItem('sessionId');
     if (sessionId) {

@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 
+/**
+ * Detects and displays an overlay when the user's internet connection is lost.
+ */
 export default function NetworkStatus() {
     const [isOnline, setIsOnline] = useState(navigator.onLine);
 
