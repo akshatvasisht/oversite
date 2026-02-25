@@ -1,6 +1,5 @@
 <p align="center">
-  <span style="font-family: 'Inter', sans-serif; color: #3b82f6; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; opacity: 0.88;">OverSite</span><br/>
-  <span style="font-size: 13px; font-weight: 500; color: #8a8a8a; letter-spacing: 0.02em;">AI allowed. Usage reported.</span>
+  <img src="docs/assets/logo.png" width="200px">
 </p>
 
 ![Python](https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white)
@@ -50,7 +49,7 @@ OverSite evaluates candidates across three primary dimensions using a multi-mode
 
   | Login | Problem Selection | IDE | Session Report |
   | :---: | :---: | :---: | :---: |
-  | <img src="docs/assets/login.png" width="100%"> | <img src="docs/assets/selection.png" width="100%"> | <img src="docs/assets/ide.png" width="100%"> | <img src="docs/assets/report.png" width="100%"> |
+  | <img src="docs/assets/login.png" height="160px"> | <img src="docs/assets/selection.png" height="160px"> | <img src="docs/assets/ide.png" height="160px"> | <img src="docs/assets/report.png" height="160px"> |
 </details>
 
 ## Impact & Performance
