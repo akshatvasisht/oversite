@@ -1,7 +1,7 @@
 # Testing Guidelines
 
 ## Strategy
-OverSite IDE uses a multi-layered testing strategy to ensure reliability across the candidate experience and the scoring engine. We prioritize **Integration Tests** for backend API endpoints and **Unit Tests** for shared logic in the `model/` package.
+OverSite IDE uses a multi-layered testing strategy to ensure reliability across the platform. We prioritize **Integration Tests** for backend API endpoints and **Unit Tests** for shared logic in the `model/` package.
 
 ### Test Types
 * **Backend Suite (Pytest):** Covers route controllers, database logic, and feature extraction.

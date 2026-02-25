@@ -70,6 +70,6 @@ The application is accessible at `http://localhost:5173`.
 | **SQLite: database locked** | Concurrent DB access | Close other instances of `app.py` or SQL browsers. |
 | **CORS Error** | Backend not on port 8000 | Ensure backend is running and `VITE_API_URL` is correct. |
 | **Import: No module 'model'** | Improper PYTHONPATH | Install in editable mode: `pip install -e .` from root. |
-| **AI Chat: 502 Error** | Invalid API Key | Verify `GOOGLE_API_KEY` in `.env`. |
+| **AI Chat: 502 Error** | Invalid API Key | Verify `GEMINI_API_KEY` in `.env`. |
 
 ---
